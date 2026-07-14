@@ -59,4 +59,6 @@ EventEntryManager is a robust, high-performance, full-stack platform built to st
 This platform utilizes advanced AES-256-GCM encryption for securely storing your external SMTP and API credentials. User passwords and roles are strictly managed through encrypted JWT tokens. 
 
 ---
-_Developed for seamless, large-scale event operations._ 
+_Developed for seamless, large-scale event operations._  
+
+
