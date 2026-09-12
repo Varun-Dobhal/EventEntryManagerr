@@ -39,36 +39,46 @@ import DashboardAnalytics from "../components/DashboardAnalytics";
 
 function StatCard({ label, value, total, color, icon, statColor, trend = "+12%", trendUp = true }) {
   const pct = total > 0 ? Math.round((value / total) * 100) : 0;
+  const accentColor = statColor || color || "#8B151B";
   return (
-    <div className="card-glass p-5 relative overflow-hidden group hover:border-indigo-500/50 hover:shadow-[0_0_30px_rgba(99,102,241,0.15)] transition-all duration-300">
-      <div className="flex items-start justify-between mb-4 relative z-10">
+    <div className="card p-4 relative overflow-hidden bg-white border border-slate-200 shadow-sm transition-all hover:shadow-md">
+      <div 
+        className="absolute top-0 left-0 right-0 h-[3.5px]" 
+        style={{ backgroundColor: accentColor }} 
+      />
+      <div className="flex items-start justify-between mb-3 relative z-10">
         <div>
-          <p className="text-[0.65rem] font-bold text-slate-400 uppercase tracking-widest mb-1">{label}</p>
-          <div className="flex items-baseline gap-2">
-            <h3 className="text-3xl font-black text-white m-0 tracking-tight" style={{ color: statColor || color }}>{value}</h3>
-            {total > 0 && <span className="text-sm font-medium text-slate-500">/ {total}</span>}
+          <p className="text-[0.7rem] font-bold text-slate-500 uppercase tracking-wider mb-1">{label}</p>
+          <div className="flex items-baseline gap-1.5">
+            <h3 className="text-2xl font-black text-slate-900 m-0 tracking-tight" style={{ color: accentColor }}>{value}</h3>
+            {total > 0 && <span className="text-xs font-semibold text-slate-400">/ {total}</span>}
           </div>
         </div>
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-lg" style={{ background: `${statColor || color}20`, color: statColor || color, boxShadow: `0 4px 20px ${statColor || color}20` }}>
+        <div 
+          className="w-9 h-9 rounded border flex items-center justify-center shrink-0" 
+          style={{ 
+            backgroundColor: `${accentColor}15`, 
+            borderColor: `${accentColor}30`, 
+            color: accentColor 
+          }}
+        >
           {icon}
         </div>
       </div>
       
-      <div className="flex items-center justify-between relative z-10">
-        <div className={`flex items-center gap-1.5 text-xs font-bold ${trendUp ? 'text-emerald-400' : 'text-red-400'}`}>
-          <div className={`w-1.5 h-1.5 rounded-full ${trendUp ? 'bg-emerald-400' : 'bg-red-400'} animate-pulse`} />
-          {trend} vs last event
-        </div>
-        
+      <div className="flex items-center justify-between relative z-10 pt-1 border-t border-slate-100 text-xs">
+        <span className="text-[0.7rem] text-slate-500 font-medium">
+          {total > 0 ? `${pct}% of roster` : "Registered"}
+        </span>
         {total > 0 && (
-          <div className="w-1/3 h-1.5 bg-slate-800 rounded-full overflow-hidden">
-            <div className="h-full rounded-full transition-all duration-1000 ease-out" style={{ width: `${pct}%`, background: statColor || color }} />
+          <div className="w-20 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+            <div 
+              className="h-full rounded-full transition-all duration-500 ease-out" 
+              style={{ width: `${pct}%`, backgroundColor: accentColor }} 
+            />
           </div>
         )}
       </div>
-      
-      {/* Decorative background glow */}
-      <div className="absolute -bottom-4 -right-4 w-24 h-24 rounded-full blur-2xl opacity-20 pointer-events-none transition-opacity group-hover:opacity-40" style={{ background: statColor || color }} />
     </div>
   );
 }
@@ -499,104 +509,113 @@ export default function AdminDashboard({ onLogout }) {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
-      {/* Header */}
-      <header
-        style={{
-          background: "var(--surface)",
-          backdropFilter: "blur(24px)",
-          borderBottom: "1px solid var(--border)",
-          padding: "0 1.25rem",
-          height: 64,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          position: "sticky",
-          top: 0,
-          zIndex: 50,
-          boxShadow: "0 1px 0 var(--border)",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: "0.875rem" }}>
-          <div
-            style={{
-              width: 38,
-              height: 38,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <img src={logoImg} alt="Logo" style={{ height: "100%", width: "auto", objectFit: "contain" }} />
+    <div style={{ minHeight: "100vh", background: "var(--bg)" }} className="flex flex-col font-sans">
+      {/* ── Top Institutional Utility Bar ────────────────────────────── */}
+      <div className="geu-utility-bar">
+        <div className="max-w-7xl mx-auto flex items-center justify-between text-xs">
+          <div className="flex items-center gap-3">
+            <span className="font-bold text-amber-300">GRAPHIC ERA (DEEMED TO BE UNIVERSITY)</span>
+            <span className="text-slate-400 hidden sm:inline">|</span>
+            <span className="text-slate-300 hidden sm:inline">NAAC 'A+' Accredited</span>
+            <span className="text-slate-400 hidden md:inline">|</span>
+            <span className="text-slate-300 hidden md:inline">Event Pass &amp; Entry Management System</span>
           </div>
-          <div>
-            <h1
-              style={{
-                fontWeight: 800,
-                fontSize: "1.1rem",
-                color: "var(--text-primary)",
-                margin: 0,
-                lineHeight: 1.2,
-              }}
-            >
-              Event Control Center
-            </h1>
-            <select 
-              className="input select" 
-              style={{ padding: "0.2rem 0.5rem", fontSize: "0.8rem", height: "auto", marginTop: "0.25rem", background: "var(--surface-2)", border: "none" }}
-              value={activeEventId}
-              onChange={(e) => setActiveEventId(e.target.value)}
-            >
-              {events.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
-            </select>
+          <div className="flex items-center gap-2 text-slate-300 text-[0.7rem]">
+            <span>Portal Mode: <strong>ADMIN CONSOLE</strong></span>
           </div>
         </div>
+      </div>
 
-        <div style={{ display: "flex", gap: "0.625rem", alignItems: "center" }}>
-          <button
-            onClick={() => setActiveTab("dashboard")}
-            className="btn btn-sm btn-secondary"
-            style={{ borderRadius: 10, height: "36px", background: activeTab === "dashboard" ? "var(--brand)" : "", color: activeTab === "dashboard" ? "#fff" : "" }}
-          >
-            Dashboard
-          </button>
-          <button
-            onClick={() => setActiveTab("history")}
-            className="btn btn-sm btn-secondary"
-            style={{ borderRadius: 10, height: "36px", background: activeTab === "history" ? "var(--brand)" : "", color: activeTab === "history" ? "#fff" : "" }}
-          >
-            History
-          </button>
-          <button
-            onClick={() => setActiveTab("events")}
-            className="btn btn-sm btn-secondary"
-            style={{ borderRadius: 10, height: "36px", background: activeTab === "events" ? "var(--brand)" : "", color: activeTab === "events" ? "#fff" : "" }}
-          >
-            Events
-          </button>
-          <button
-            onClick={() => setActiveTab("campaigns")}
-            className="btn btn-sm btn-secondary"
-            style={{ borderRadius: 10, height: "36px", background: activeTab === "campaigns" ? "var(--brand)" : "", color: activeTab === "campaigns" ? "#fff" : "" }}
-          >
-            Campaigns
-          </button>
-          <button
-            onClick={() => setActiveTab("settings")}
-            className="btn-icon"
-            title="Settings"
-            style={{ borderRadius: 10, background: activeTab === "settings" ? "var(--brand-light)" : "transparent", color: activeTab === "settings" ? "var(--brand)" : "inherit" }}
-          >
-            <Settings size={18} />
-          </button>
-          <button onClick={activeTab === "settings" ? fetchSettings : fetchAttendees} className="btn-icon" title="Refresh" style={{ borderRadius: 10 }}>
-            <RefreshCw size={18} />
-          </button>
-          <button onClick={onLogout} className="btn btn-sm btn-secondary" style={{ marginLeft: "0.25rem", height: "36px" }}>
-            <LogOut size={16} /> <span className="hide-mobile">Logout</span>
-          </button>
+      {/* ── Main Masthead (Exact GEU Logo from Screenshots) ────────── */}
+      <div className="bg-white border-b border-slate-200 py-3 px-4 sm:px-6 shadow-xs">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <img 
+              src={logoImg} 
+              alt="GEU Crest" 
+              className="w-12 h-12 object-contain shrink-0" 
+            />
+            <div className="flex flex-col justify-center">
+              <span className="font-serif text-xl font-bold text-[#A31D24] tracking-tight leading-none">
+                Graphic Era
+              </span>
+              <span className="font-serif text-[0.68rem] text-slate-900 leading-tight">
+                deemed to be <strong className="font-serif">University</strong>
+              </span>
+              <span className="text-[0.55rem] font-bold tracking-[0.25em] text-[#A31D24] uppercase leading-none mt-0.5">
+                DEHRADUN
+              </span>
+            </div>
+
+            <div className="h-7 w-px bg-slate-200 mx-2 hidden sm:block" />
+
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-slate-500 hidden sm:inline">Active Event:</span>
+              <select 
+                className="input select py-1 px-2.5 text-xs font-bold text-[#1E2A78] bg-slate-50 border border-slate-300 rounded-lg"
+                style={{ width: "auto", height: "auto" }}
+                value={activeEventId}
+                onChange={(e) => setActiveEventId(e.target.value)}
+              >
+                {events.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 self-end md:self-auto">
+            <button 
+              onClick={activeTab === "settings" ? fetchSettings : fetchAttendees} 
+              className="btn btn-secondary btn-sm text-xs"
+              title="Refresh Data"
+            >
+              <RefreshCw size={13} />
+              <span>Refresh</span>
+            </button>
+            <button 
+              onClick={onLogout} 
+              className="btn btn-sm btn-secondary text-xs text-red-700 hover:bg-red-50 border-red-200"
+            >
+              <LogOut size={13} /> 
+              <span>Sign Out</span>
+            </button>
+          </div>
         </div>
-      </header>
+      </div>
+
+      {/* ── Midnight Navy University Ribbon Navigation (GEU Screenshots) ── */}
+      <nav className="bg-[#0D1038] text-white shadow-sm sticky top-0 z-40 border-b border-slate-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between overflow-x-auto">
+          <div className="flex items-center gap-1.5 py-1.5">
+            {[
+              { id: "dashboard", label: "Programs & Roster", icon: <Users size={14} /> },
+              { id: "history", label: "Upload & Audit History", icon: <Clock size={14} /> },
+              { id: "events", label: "Departments & Gates", icon: <ScanLine size={14} /> },
+              { id: "campaigns", label: "Email Passes", icon: <Mail size={14} /> },
+              { id: "settings", label: "System Settings", icon: <Settings size={14} /> },
+            ].map((tab) => {
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`px-3.5 py-1.5 text-xs font-bold rounded-full flex items-center gap-1.5 transition-all whitespace-nowrap ${
+                    isActive
+                      ? "bg-[#FFB800] text-black shadow-xs font-black"
+                      : "text-white/80 hover:bg-white/10 hover:text-white"
+                  }`}
+                >
+                  {tab.icon}
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="text-[0.7rem] text-[#FFB800] font-bold hidden lg:flex items-center gap-2">
+            <span>● Official Event Console</span>
+          </div>
+        </div>
+      </nav>
 
       <main
         style={{

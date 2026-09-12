@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import api from "../utils/api";
 import { useToast } from "../context/ToastContext";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, X } from "lucide-react";
 
 export default function DataCleanup({ activeEventId, cleanupTarget, setCleanupTarget, onRefresh }) {
   const { toast } = useToast();
@@ -40,106 +40,49 @@ export default function DataCleanup({ activeEventId, cleanupTarget, setCleanupTa
   };
 
   return (
-    <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && setCleanupTarget(null)} style={{ 
-      position: "fixed", 
-      top: 0, 
-      left: 0, 
-      width: "100vw", 
-      height: "100vh", 
-      display: "flex", 
-      justifyContent: "center", 
-      alignItems: "center", 
-      zIndex: 9999, 
-      background: "rgba(0, 0, 0, 0.8)", 
-      backdropFilter: "blur(5px)" 
-    }}>
-      <div className="modal-content animate-pop-in" style={{ 
-        maxWidth: 400, 
-        width: "100%",
-        padding: "2rem", 
-        background: "#09090b", 
-        border: "1px solid #27272a", 
-        borderRadius: "16px",
-        boxShadow: "0 20px 40px rgba(0,0,0,0.5)",
-        fontFamily: "system-ui, -apple-system, sans-serif"
-      }}>
-        <h3 style={{ marginTop: 0, color: "#fff", display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "1.25rem", fontWeight: 500 }}>
-          <AlertTriangle size={22} style={{ color: "#fff" }} strokeWidth={1.5} /> Confirm Deletion
-        </h3>
-        <p style={{ color: "#71717a", fontSize: "0.95rem", marginBottom: "2rem", lineHeight: "1.5" }}>
-          Are you sure you want to delete <strong style={{ color: "#a1a1aa", fontWeight: 600 }}>{cleanupTarget.name}</strong>? This action is permanent and cannot be undone.
+    <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && setCleanupTarget(null)}>
+      <div className="card animate-pop-in w-full max-w-md p-6 bg-white border border-slate-300 shadow-xl relative text-slate-800">
+        <button
+          onClick={() => setCleanupTarget(null)}
+          className="absolute top-3 right-3 text-slate-400 hover:text-slate-600 p-1"
+        >
+          <X size={18} />
+        </button>
+
+        <div className="flex items-center gap-2.5 text-red-700 mb-3 pb-2 border-b border-slate-200">
+          <AlertTriangle size={22} className="shrink-0 text-red-600" />
+          <h3 className="text-base font-bold m-0 uppercase tracking-tight">Confirm Permanent Deletion</h3>
+        </div>
+
+        <p className="text-xs text-slate-600 mb-4 leading-relaxed">
+          Are you sure you want to permanently delete <strong className="text-slate-900 font-bold">{cleanupTarget.name}</strong>? This action cannot be reversed.
         </p>
         
-        <div style={{ marginBottom: "2.5rem" }}>
-          <label style={{ display: "block", color: "#52525b", fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.05em", marginBottom: "0.5rem", textTransform: "uppercase" }}>
-            Type DELETE to confirm
+        <div className="mb-5 bg-red-50 border border-red-200 rounded p-3 text-xs">
+          <label className="block text-[0.68rem] font-bold text-red-800 uppercase tracking-wider mb-1.5">
+            Type DELETE to confirm:
           </label>
           <input 
             type="text"
             value={cleanupTarget.text || ""}
             onChange={(e) => setCleanupTarget({ ...cleanupTarget, text: e.target.value })}
             placeholder="DELETE"
-            style={{
-              width: "100%",
-              background: "#18181b",
-              border: "1px solid #27272a",
-              color: "#fff",
-              padding: "0.875rem 1rem",
-              borderRadius: "12px",
-              outline: "none",
-              fontSize: "0.95rem",
-              transition: "border 0.2s"
-            }}
-            onFocus={(e) => e.target.style.borderColor = "#3f3f46"}
-            onBlur={(e) => e.target.style.borderColor = "#27272a"}
+            className="input bg-white border-red-300 text-slate-900 font-bold tracking-widest text-xs"
+            autoFocus
           />
         </div>
 
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: "1rem" }}>
+        <div className="flex justify-end gap-2 text-xs">
           <button 
             onClick={() => setCleanupTarget(null)}
-            style={{
-              background: "#18181b",
-              color: "#fff",
-              border: "1px solid #27272a",
-              padding: "0.75rem 1.5rem",
-              borderRadius: "12px",
-              fontSize: "0.95rem",
-              fontWeight: 600,
-              cursor: "pointer",
-              transition: "background 0.2s"
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.background = "#27272a"}
-            onMouseLeave={(e) => e.currentTarget.style.background = "#18181b"}
+            className="btn btn-secondary btn-sm"
           >
             Cancel
           </button>
           <button 
             onClick={executeDelete} 
             disabled={cleanupTarget.text !== "DELETE" || loading}
-            style={{
-              background: "#000",
-              color: "#fff",
-              border: "1px solid #18181b",
-              boxShadow: "0 0 15px rgba(255,255,255,0.03)",
-              padding: "0.75rem 1.5rem",
-              borderRadius: "12px",
-              fontSize: "0.95rem",
-              fontWeight: 600,
-              cursor: (cleanupTarget.text !== "DELETE" || loading) ? "not-allowed" : "pointer",
-              opacity: (cleanupTarget.text !== "DELETE" || loading) ? 0.5 : 1,
-              transition: "all 0.2s"
-            }}
-            onMouseEnter={(e) => {
-              if (cleanupTarget.text === "DELETE" && !loading) {
-                e.currentTarget.style.background = "#111";
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (cleanupTarget.text === "DELETE" && !loading) {
-                e.currentTarget.style.background = "#000";
-              }
-            }}
+            className="btn btn-danger btn-sm"
           >
             {loading ? "Deleting..." : "Delete Permanently"}
           </button>

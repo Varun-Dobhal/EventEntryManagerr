@@ -56,12 +56,7 @@ function App() {
     <ThemeProvider>
       <ToastProvider>
         <Router>
-          <div className="app-bg relative">
-            {/* Global Animated Background */}
-            <div className="fixed inset-0 z-0 pointer-events-none">
-              <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-indigo-600/20 blur-[120px] animate-pulse-glow" />
-              <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-emerald-600/10 blur-[120px] animate-pulse-glow" style={{ animationDelay: '2s' }} />
-            </div>
+          <div className="app-bg relative min-h-screen text-slate-800">
             {isInitializing ? (
               <div
                 style={{
@@ -69,16 +64,17 @@ function App() {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
+                  backgroundColor: "#F8FAFC",
                 }}
               >
                 <div
                   style={{
-                    width: 40,
-                    height: 40,
+                    width: 44,
+                    height: 44,
                     borderRadius: "50%",
-                    border: "3px solid rgba(99,102,241,0.2)",
-                    borderTopColor: "#6366f1",
-                    animation: "spin 1s linear infinite",
+                    border: "3px solid rgba(139, 21, 27, 0.15)",
+                    borderTopColor: "#8B151B",
+                    animation: "spin 0.8s linear infinite",
                   }}
                 />
               </div>

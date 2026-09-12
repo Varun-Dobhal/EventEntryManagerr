@@ -68,55 +68,59 @@ export default function CampaignConsole({ campaignId, onClose, onRedirectCleanup
               message = `Sending email to ${job.attendee?.email || "Unknown"}`;
               type = "info";
             } else if (job.status === "SENT") {
-              message = `Delivered successfully to ${job.attendee?.email || "Unknown"}`;
+              message = `Successfully dispatched to ${job.attendee?.email || "Unknown"}`;
               type = "success";
-            } else if (["FAILED", "PERM_FAILED"].includes(job.status)) {
-              message = `Failed - ${job.errorMessage} (${job.attendee?.email})`;
+            } else if (job.status === "FAILED") {
+              message = `Transmission failed for ${job.attendee?.email || "Unknown"}: ${job.error || "Network error"}`;
               type = "error";
             }
             
             if (message) {
               newLogs.push({
                 id: key,
-                time: new Date(job.updatedAt).toLocaleTimeString(),
+                time: new Date().toLocaleTimeString(),
                 message,
-                type,
-                rawTime: new Date(job.updatedAt).getTime()
+                type
               });
             }
           }
         });
         
         if (newLogs.length > 0) {
-          setLogs(prev => {
-            const combined = [...prev, ...newLogs];
-            return combined.slice(-1000); // Keep last 1000 logs
-          });
+          setLogs(prev => [...prev.slice(-300), ...newLogs]); // keep last 300 logs
         }
       } catch (e) {
-        console.error("Failed to fetch logs");
+        console.error("Failed to fetch recent jobs", e);
       }
     };
     
     fetchLogs();
-    const int = setInterval(fetchLogs, 2000);
+    const int = setInterval(fetchLogs, 1500);
     return () => clearInterval(int);
   }, [campaignId]);
 
+  // Auto-scroll logs
   useEffect(() => {
-    if (logsEndRef.current) {
-      logsEndRef.current.scrollIntoView({ behavior: "smooth" });
-    }
+    logsEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [logs]);
 
   const handleAction = async (action) => {
     try {
-      if (action === "retry") {
+      if (action === "pause") {
+        await api.post(`/attendees/campaigns/${campaignId}/pause`);
+        toast({ type: "success", message: "Campaign paused." });
+      } else if (action === "resume") {
+        await api.post(`/attendees/campaigns/${campaignId}/resume`);
+        toast({ type: "success", message: "Campaign resumed." });
+      } else if (action === "cancel") {
+        await api.post(`/attendees/campaigns/${campaignId}/cancel`);
+        toast({ type: "success", message: "Campaign cancelled." });
+      } else if (action === "retry") {
         await api.post(`/attendees/campaigns/${campaignId}/retry-failed`);
-        toast({ type: "success", message: "Failed batches queued for retry." });
+        toast({ type: "success", message: "Queued failed emails for retry." });
       }
-    } catch(e) {
-      toast({ type: "error", message: `Failed to execute action.` });
+    } catch (e) {
+      toast({ type: "error", message: e.response?.data?.error || `Failed to ${action} campaign` });
     }
   };
 
@@ -126,112 +130,115 @@ export default function CampaignConsole({ campaignId, onClose, onRedirectCleanup
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `campaign_${campaignId}_logs.txt`;
+    a.download = `campaign-${campaignId}-logs.txt`;
     a.click();
   };
 
-  if (error) return <div style={{ padding: "3rem", textAlign: "center", color: "var(--danger)" }}><XCircle /> {error}</div>;
-  if (!campaign) return <div style={{ padding: "3rem", textAlign: "center", color: "var(--text-muted)" }}><RefreshCw className="animate-spin" /> Loading Enterprise Console...</div>;
+  if (error) return <div className="p-8 text-center text-red-600 font-semibold"><XCircle className="mx-auto mb-2" /> {error}</div>;
+  if (!campaign) return <div className="p-8 text-center text-slate-500 font-semibold"><RefreshCw className="animate-spin mx-auto mb-2" /> Loading Campaign Console...</div>;
 
   const pct = campaign.totalCount > 0 ? Math.round(((campaign.sentCount + campaign.failedCount) / campaign.totalCount) * 100) : 0;
   const etaMins = rate > 0 ? Math.ceil(campaign.pendingCount / rate) : "?";
-
   const filteredLogs = logs.filter(l => logFilter === "all" || l.type === logFilter);
 
   return (
-    <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "1.5rem", height: "100%" }}>
-      {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-          <button className="btn-icon" onClick={onClose}><ArrowLeft size={24} /></button>
+    <div className="animate-fade-in flex flex-col gap-4 text-slate-800 text-xs">
+      
+      {/* ── Console Header ─────────────────────────────────────────── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded border border-slate-300 shadow-xs">
+        <div className="flex items-center gap-3">
+          <button className="btn btn-secondary btn-sm" onClick={onClose} title="Back to campaigns">
+            <ArrowLeft size={16} /> <span>Back</span>
+          </button>
           <div>
-            <h2 style={{ margin: 0, fontSize: "1.5rem" }}>{campaign.name}</h2>
-            <div style={{ display: "flex", gap: "1rem", color: "var(--text-muted)", fontSize: "0.85rem", marginTop: "0.25rem" }}>
-              <span style={{ display: "flex", alignItems: "center", gap: "0.25rem", color: campaign.status === "RUNNING" ? "var(--brand)" : "inherit" }}>
-                <Activity size={14} /> {campaign.status}
+            <h2 className="text-base font-bold text-slate-900 m-0 leading-tight">{campaign.name}</h2>
+            <div className="flex items-center gap-2 text-[0.7rem] text-slate-500 mt-0.5">
+              <span className={`badge ${campaign.status === "RUNNING" ? "badge-amber" : campaign.status === "FAILED" ? "badge-red" : "badge-green"}`}>
+                <Activity size={12} /> {campaign.status}
               </span>
               <span>Started: {new Date(campaign.createdAt).toLocaleString()}</span>
             </div>
           </div>
         </div>
-        <div style={{ display: "flex", gap: "0.5rem" }}>
+        
+        <div className="flex items-center gap-2">
           {campaign.failedCount > 0 && (
-            <button className="btn btn-secondary" style={{ color: "var(--danger)", borderColor: "var(--danger-light)" }} onClick={() => handleAction("retry")}>
-              <RefreshCw size={16} /> Retry {campaign.failedCount} Failed
+            <button className="btn btn-secondary btn-sm text-red-700 border-red-300 hover:bg-red-50" onClick={() => handleAction("retry")}>
+              <RefreshCw size={13} className="mr-1" /> Retry {campaign.failedCount} Failed
             </button>
           )}
-          <button className="btn btn-secondary" style={{ color: "var(--danger)", borderColor: "var(--danger-light)" }} onClick={() => onRedirectCleanup({ type: 'campaign', id: campaignId, name: campaign.name, text: '' })}>
-            <Trash2 size={16} /> Delete Campaign
+          <button className="btn btn-secondary btn-sm text-red-700 border-red-300 hover:bg-red-50" onClick={() => onRedirectCleanup({ type: 'campaign', id: campaignId, name: campaign.name, text: '' })}>
+            <Trash2 size={13} className="mr-1" /> Delete Campaign
           </button>
         </div>
       </div>
 
-      {/* Stats Grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem" }}>
-        <div className="card" style={{ padding: "1.5rem", borderLeft: "4px solid var(--text-primary)" }}>
-          <div style={{ fontSize: "0.75rem", textTransform: "uppercase", fontWeight: 800, color: "var(--text-muted)", marginBottom: "0.5rem" }}>Total Audience</div>
-          <div style={{ fontSize: "2rem", fontWeight: 900 }}>{campaign.totalCount}</div>
+      {/* ── Stats Grid ─────────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="card p-3 bg-white border border-slate-300 shadow-xs border-l-4 border-l-[#8B151B]">
+          <span className="text-[0.68rem] font-bold text-slate-500 uppercase tracking-wider block mb-1">Total Recipients</span>
+          <span className="text-xl font-black text-slate-900">{campaign.totalCount}</span>
         </div>
-        <div className="card" style={{ padding: "1.5rem", borderLeft: "4px solid var(--success)" }}>
-          <div style={{ fontSize: "0.75rem", textTransform: "uppercase", fontWeight: 800, color: "var(--success)", marginBottom: "0.5rem" }}>Sent Successfully</div>
-          <div style={{ fontSize: "2rem", fontWeight: 900, color: "var(--success)" }}>{campaign.sentCount}</div>
+        <div className="card p-3 bg-white border border-slate-300 shadow-xs border-l-4 border-l-emerald-600">
+          <span className="text-[0.68rem] font-bold text-emerald-800 uppercase tracking-wider block mb-1">Dispatched</span>
+          <span className="text-xl font-black text-emerald-700">{campaign.sentCount}</span>
         </div>
-        <div className="card" style={{ padding: "1.5rem", borderLeft: "4px solid var(--warning)" }}>
-          <div style={{ fontSize: "0.75rem", textTransform: "uppercase", fontWeight: 800, color: "var(--warning)", marginBottom: "0.5rem" }}>Pending Remaining</div>
-          <div style={{ fontSize: "2rem", fontWeight: 900, color: "var(--warning)" }}>{campaign.pendingCount}</div>
+        <div className="card p-3 bg-white border border-slate-300 shadow-xs border-l-4 border-l-amber-500">
+          <span className="text-[0.68rem] font-bold text-amber-800 uppercase tracking-wider block mb-1">Pending</span>
+          <span className="text-xl font-black text-amber-700">{campaign.pendingCount}</span>
         </div>
-        <div className="card" style={{ padding: "1.5rem", borderLeft: "4px solid var(--danger)" }}>
-          <div style={{ fontSize: "0.75rem", textTransform: "uppercase", fontWeight: 800, color: "var(--danger)", marginBottom: "0.5rem" }}>Failed</div>
-          <div style={{ fontSize: "2rem", fontWeight: 900, color: "var(--danger)" }}>{campaign.failedCount}</div>
-        </div>
-      </div>
-
-      {/* Progress & Live Meta */}
-      <div className="card" style={{ padding: "1.5rem" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem", fontWeight: 800 }}>
-          <span>Campaign Progress</span>
-          <span style={{ color: "var(--brand)" }}>{pct}%</span>
-        </div>
-        <div style={{ height: "12px", background: "var(--surface-2)", borderRadius: "6px", overflow: "hidden", display: "flex", marginBottom: "1.5rem" }}>
-          <div style={{ height: "100%", width: `${(campaign.sentCount / campaign.totalCount) * 100}%`, background: "var(--success)", transition: "width 0.5s ease" }} />
-          <div style={{ height: "100%", width: `${(campaign.failedCount / campaign.totalCount) * 100}%`, background: "var(--danger)", transition: "width 0.5s ease" }} />
-        </div>
-        <div style={{ display: "flex", gap: "2rem", color: "var(--text-muted)", fontSize: "0.9rem" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-            <Activity size={16} /> <strong>{rate}</strong> emails / min
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-            <Clock size={16} /> ETA: <strong>{etaMins}</strong> {etaMins === 1 ? "min" : "mins"}
-          </div>
+        <div className="card p-3 bg-white border border-slate-300 shadow-xs border-l-4 border-l-red-600">
+          <span className="text-[0.68rem] font-bold text-red-800 uppercase tracking-wider block mb-1">Failed</span>
+          <span className="text-xl font-black text-red-700">{campaign.failedCount}</span>
         </div>
       </div>
 
-      {/* Real-Time Logs Console */}
-      <div className="card" style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minHeight: "400px", background: "#0f172a", color: "#e2e8f0" }}>
-        <div style={{ padding: "1rem 1.5rem", borderBottom: "1px solid #1e293b", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#1e293b" }}>
-          <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
-            <span style={{ fontWeight: 800, fontSize: "0.9rem", color: "#fff" }}>Live Terminal</span>
-            <div style={{ display: "flex", gap: "0.25rem" }}>
-              <button onClick={() => setLogFilter("all")} style={{ background: logFilter==="all"?"#334155":"transparent", color: "#fff", border: "none", padding: "0.25rem 0.75rem", borderRadius: "4px", fontSize: "0.75rem", cursor: "pointer" }}>All</button>
-              <button onClick={() => setLogFilter("success")} style={{ background: logFilter==="success"?"#065f46":"transparent", color: "#34d399", border: "none", padding: "0.25rem 0.75rem", borderRadius: "4px", fontSize: "0.75rem", cursor: "pointer" }}>Success</button>
-              <button onClick={() => setLogFilter("error")} style={{ background: logFilter==="error"?"#7f1d1d":"transparent", color: "#f87171", border: "none", padding: "0.25rem 0.75rem", borderRadius: "4px", fontSize: "0.75rem", cursor: "pointer" }}>Failed</button>
+      {/* ── Progress & Rates ───────────────────────────────────────── */}
+      <div className="card p-4 bg-white border border-slate-300 shadow-xs">
+        <div className="flex justify-between items-center mb-1.5 font-bold text-xs">
+          <span className="text-slate-700">Dispatch Progress</span>
+          <span className="text-[#8B151B]">{pct}% Completed</span>
+        </div>
+        <div className="w-full h-2.5 bg-slate-100 rounded overflow-hidden flex mb-3 border border-slate-200">
+          <div className="h-full bg-emerald-600 transition-all duration-500" style={{ width: `${(campaign.sentCount / (campaign.totalCount || 1)) * 100}%` }} />
+          <div className="h-full bg-red-600 transition-all duration-500" style={{ width: `${(campaign.failedCount / (campaign.totalCount || 1)) * 100}%` }} />
+        </div>
+        <div className="flex gap-4 text-slate-500 text-xs font-semibold">
+          <span className="flex items-center gap-1.5"><Activity size={14} className="text-[#8B151B]" /> {rate} emails / min</span>
+          <span className="flex items-center gap-1.5"><Clock size={14} className="text-amber-600" /> Est. Remaining: {etaMins} {etaMins === 1 ? "min" : "mins"}</span>
+        </div>
+      </div>
+
+      {/* ── Live Transmission Log Terminal ─────────────────────────── */}
+      <div className="card overflow-hidden bg-[#0F172A] text-slate-200 border border-slate-700 shadow-sm flex flex-col min-h-[300px]">
+        <div className="px-4 py-2 bg-[#1E293B] border-b border-slate-700 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="font-mono font-bold text-xs text-amber-300 uppercase">Live SMTP Dispatch Log</span>
+            <div className="flex gap-1 ml-2">
+              <button onClick={() => setLogFilter("all")} className={`px-2 py-0.5 rounded text-[0.65rem] font-bold ${logFilter === "all" ? "bg-slate-700 text-white" : "text-slate-400"}`}>All</button>
+              <button onClick={() => setLogFilter("success")} className={`px-2 py-0.5 rounded text-[0.65rem] font-bold ${logFilter === "success" ? "bg-emerald-900 text-emerald-300" : "text-slate-400"}`}>Success</button>
+              <button onClick={() => setLogFilter("error")} className={`px-2 py-0.5 rounded text-[0.65rem] font-bold ${logFilter === "error" ? "bg-red-900 text-red-300" : "text-slate-400"}`}>Failed</button>
             </div>
           </div>
-          <button className="btn-icon" onClick={exportLogs} style={{ color: "#94a3b8" }} title="Export Logs"><Download size={16} /></button>
+          <button className="btn btn-secondary btn-xs bg-slate-800 text-slate-300 border-slate-600 hover:bg-slate-700" onClick={exportLogs} title="Export raw logs">
+            <Download size={12} className="mr-1" /> Export
+          </button>
         </div>
-        <div style={{ flex: 1, overflowY: "auto", padding: "1rem 1.5rem", fontFamily: "monospace", fontSize: "0.85rem", lineHeight: 1.6 }}>
+        
+        <div className="p-3 font-mono text-[0.72rem] leading-relaxed flex-1 overflow-y-auto max-h-[360px] space-y-1">
           {filteredLogs.map(l => (
-            <div key={l.id} style={{ display: "flex", gap: "0.75rem", marginBottom: "0.25rem", color: l.type === "success" ? "#34d399" : l.type === "error" ? "#f87171" : "#94a3b8" }}>
-              <span style={{ opacity: 0.5, flexShrink: 0 }}>[{l.time}]</span>
-              <span style={{ wordBreak: "break-all" }}>{l.message}</span>
+            <div key={l.id} className={`flex gap-2 ${l.type === "success" ? "text-emerald-400" : l.type === "error" ? "text-red-400" : "text-slate-300"}`}>
+              <span className="text-slate-500 shrink-0">[{l.time}]</span>
+              <span className="break-all">{l.message}</span>
             </div>
           ))}
           {filteredLogs.length === 0 && (
-            <div style={{ color: "#64748b", fontStyle: "italic", textAlign: "center", marginTop: "2rem" }}>Waiting for job events...</div>
+            <div className="text-slate-500 italic text-center py-8">Waiting for transmission events...</div>
           )}
           <div ref={logsEndRef} />
         </div>
       </div>
+
     </div>
   );
 }

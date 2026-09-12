@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
-import { Activity } from 'lucide-react';
+import { Activity, BarChart2 } from 'lucide-react';
 
 export default function DashboardAnalytics({ attendees, eventCheckpoints }) {
   // Generate time-series data from attendee scan times
@@ -62,69 +62,76 @@ export default function DashboardAnalytics({ attendees, eventCheckpoints }) {
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-6">
       {/* Attendance Velocity Chart */}
-      <div className="lg:col-span-2 card-glass p-6 border border-white/5 shadow-2xl">
-        <div className="flex items-center justify-between mb-6">
+      <div className="lg:col-span-2 card p-5 bg-white border border-slate-300 shadow-sm relative overflow-hidden">
+        <div className="absolute top-0 left-0 right-0 h-[3px] bg-[#8B151B]" />
+        
+        <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-              <Activity size={18} className="text-indigo-400" />
-              Scan Velocity
+            <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5 uppercase tracking-wide">
+              <Activity size={16} className="text-[#8B151B]" />
+              Gate Scan Velocity (Scans / Minute)
             </h3>
-            <p className="text-xs text-slate-400 font-medium mt-1">Real-time checkpoint throughput</p>
+            <p className="text-[0.72rem] text-slate-500 font-medium">Real-time attendance throughput across campus gates</p>
           </div>
-          <div className="px-3 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-full">
-            <span className="text-xs font-bold text-indigo-400">Live</span>
+          <div className="px-2 py-0.5 bg-red-50 border border-red-200 rounded text-[0.68rem] font-bold text-[#8B151B] uppercase">
+            Live Stream
           </div>
         </div>
         
-        <div className="h-64 w-full">
+        <div className="h-60 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={timeSeriesData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="colorScans" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#6366f1" stopOpacity={0.4}/>
-                  <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                  <stop offset="5%" stopColor="#8B151B" stopOpacity={0.25}/>
+                  <stop offset="95%" stopColor="#8B151B" stopOpacity={0.01}/>
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
-              <XAxis dataKey="timeLabel" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
-              <YAxis stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" vertical={false} />
+              <XAxis dataKey="timeLabel" stroke="#64748B" fontSize={10} tickLine={false} axisLine={{ stroke: '#CBD5E1' }} />
+              <YAxis stroke="#64748B" fontSize={10} tickLine={false} axisLine={{ stroke: '#CBD5E1' }} />
               <Tooltip 
-                contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '8px', color: '#fff' }}
-                itemStyle={{ color: '#818cf8', fontWeight: 'bold' }}
+                contentStyle={{ backgroundColor: '#FFFFFF', borderColor: '#CBD5E1', borderRadius: '4px', color: '#0F172A', fontSize: '12px', boxShadow: '0 2px 6px rgba(0,0,0,0.08)' }}
+                itemStyle={{ color: '#8B151B', fontWeight: 'bold' }}
               />
-              <Area type="monotone" dataKey="scans" stroke="#818cf8" strokeWidth={3} fillOpacity={1} fill="url(#colorScans)" />
+              <Area type="monotone" dataKey="scans" stroke="#8B151B" strokeWidth={2} fillOpacity={1} fill="url(#colorScans)" />
             </AreaChart>
           </ResponsiveContainer>
         </div>
       </div>
 
-      {/* Checkpoint Drop-off Stats */}
-      <div className="card-glass p-6 border border-white/5 shadow-2xl flex flex-col">
-        <div className="mb-6">
-          <h3 className="text-lg font-bold text-white">Checkpoint Funnel</h3>
-          <p className="text-xs text-slate-400 font-medium mt-1">Conversion across zones</p>
+      {/* Checkpoint Funnel Stats */}
+      <div className="card p-5 bg-white border border-slate-300 shadow-sm relative overflow-hidden flex flex-col">
+        <div className="absolute top-0 left-0 right-0 h-[3px] bg-[#C59B27]" />
+
+        <div className="mb-4">
+          <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5 uppercase tracking-wide">
+            <BarChart2 size={16} className="text-[#C59B27]" />
+            Checkpoint Distribution
+          </h3>
+          <p className="text-[0.72rem] text-slate-500 font-medium">Headcount admitted at each designated gate</p>
         </div>
         
-        <div className="flex-1 space-y-4">
-          {dropoffData.map((d, i) => {
+        <div className="flex-1 space-y-3.5">
+          {dropoffData.map((d) => {
             const max = Math.max(...dropoffData.map(x => x.count), 1);
             const pct = (d.count / max) * 100;
             return (
               <div key={d.name} className="relative">
-                <div className="flex justify-between text-xs font-bold mb-1">
-                  <span className="text-slate-300">{d.name}</span>
-                  <span className="text-white">{d.count}</span>
+                <div className="flex justify-between text-xs font-semibold mb-1">
+                  <span className="text-slate-700">{d.name}</span>
+                  <span className="text-slate-900 font-bold">{d.count} checked in</span>
                 </div>
-                <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                <div className="w-full h-2 bg-slate-100 rounded overflow-hidden border border-slate-200">
                   <div 
-                    className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-1000" 
+                    className="h-full rounded bg-[#8B151B] transition-all duration-700" 
                     style={{ width: `${pct}%` }} 
                   />
                 </div>
               </div>
-            )
+            );
           })}
         </div>
       </div>
