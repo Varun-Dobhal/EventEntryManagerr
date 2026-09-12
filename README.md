@@ -28,7 +28,7 @@ EventEntryManager is a robust, high-performance, full-stack platform built to st
 
 ### Prerequisites
 - Node.js (v18+)
-- PostgreSQL Database
+- PostgreSQL Database.
 
 ### Installation
 1. **Clone the repository:**
