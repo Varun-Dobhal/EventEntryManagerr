@@ -528,3 +528,55 @@ select.input {
   animation: orbFloat3 18s ease-in-out infinite alternate;
   will-change: transform;
 }
+
+/* ── Toast Notification Fallback Styles ───────────────────────────── */
+.toast-container {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  z-index: 99999;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 24rem;
+  width: 100%;
+  pointer-events: none;
+}
+
+.toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-radius: 1rem;
+  background-color: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(16px);
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  animation: slideUp 0.25s ease-out forwards;
+}
+
+.toast.toast-error {
+  border-left: 4px solid #ef4444;
+  border-color: #fecdd3;
+  color: #9f1239;
+}
+
+.toast.toast-success {
+  border-left: 4px solid #10b981;
+  border-color: #a7f3d0;
+  color: #065f46;
+}
+
+.toast.toast-warning {
+  border-left: 4px solid #f59e0b;
+  border-color: #fde68a;
+  color: #92400e;
+}
+
+.toast.toast-info {
+  border-left: 4px solid #3b82f6;
+  border-color: #bfdbfe;
+  color: #1e40af;
+}

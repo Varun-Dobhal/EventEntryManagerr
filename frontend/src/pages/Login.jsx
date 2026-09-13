@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Eye,
   EyeOff,
@@ -41,6 +41,8 @@ export default function Login({ setRole }) {
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const portal = searchParams.get("portal") === "volunteer" ? "volunteer" : "admin";
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -60,6 +62,7 @@ export default function Login({ setRole }) {
       const { data } = await api.post("/auth/login", {
         username: cleanUser,
         password: cleanPass,
+        portal,
       });
 
       if (!data?.token || !data?.role) {
@@ -68,6 +71,23 @@ export default function Login({ setRole }) {
 
       if (!ALLOWED_ROLES.includes(data.role)) {
         throw new Error("Unauthorized role received.");
+      }
+
+      // Strict role-portal cross-validation
+      if (portal === "admin" && data.role !== "ADMIN") {
+        throw new Error(
+          "Access Denied: Volunteer accounts cannot sign in through the Admin Portal. Please switch to the Volunteer Scanner."
+        );
+      }
+
+      if (portal === "volunteer" && data.role === "ADMIN") {
+        throw new Error(
+          "Access Denied: Administrator accounts cannot sign in through Volunteer Scanner. Please switch to the Admin Portal."
+        );
+      }
+
+      if (portal === "volunteer" && !["ENTRY_VOLUNTEER", "FOOD_VOLUNTEER"].includes(data.role)) {
+        throw new Error("Access Denied: Only authorized volunteer accounts can sign in here.");
       }
 
       persistSession({

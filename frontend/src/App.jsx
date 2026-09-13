@@ -84,13 +84,13 @@ function App() {
                 <Route
                   path="/"
                   element={
-                    !role ? <LandingPage /> : <Navigate to={role === "ADMIN" ? "/admin" : "/volunteer"} />
+                    !role ? <LandingPage /> : <Navigate to={role === "ADMIN" ? "/admin" : "/volunteer"} replace />
                   }
                 />
                 <Route
                   path="/login"
                   element={
-                    !role ? <Login setRole={setRole} /> : <Navigate to="/" />
+                    !role ? <Login setRole={setRole} /> : <Navigate to={role === "ADMIN" ? "/admin" : "/volunteer"} replace />
                   }
                 />
                 <Route
@@ -98,8 +98,10 @@ function App() {
                   element={
                     role === "ADMIN" ? (
                       <AdminDashboard onLogout={handleLogout} />
+                    ) : role ? (
+                      <Navigate to="/volunteer" replace />
                     ) : (
-                      <Navigate to="/" />
+                      <Navigate to="/login?portal=admin" replace />
                     )
                   }
                 />
@@ -108,8 +110,10 @@ function App() {
                   element={
                     isVolunteer ? (
                       <VolunteerScanner role={role} onLogout={handleLogout} />
+                    ) : role === "ADMIN" ? (
+                      <Navigate to="/admin" replace />
                     ) : (
-                      <Navigate to="/login" />
+                      <Navigate to="/login?portal=volunteer" replace />
                     )
                   }
                 />

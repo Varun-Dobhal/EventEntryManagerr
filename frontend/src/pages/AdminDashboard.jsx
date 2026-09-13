@@ -37,28 +37,23 @@ import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'rec
 import AttendeeTable from "../components/AttendeeTable";
 import DashboardAnalytics from "../components/DashboardAnalytics";
 
-function StatCard({ label, value, total, color, icon, statColor, trend = "+12%", trendUp = true }) {
+function StatCard({ label, value, total, color, icon, statColor }) {
   const pct = total > 0 ? Math.round((value / total) * 100) : 0;
-  const accentColor = statColor || color || "#8B151B";
+  const accentColor = statColor || color || "#1E2A78";
   return (
-    <div className="card p-4 relative overflow-hidden bg-white border border-slate-200 shadow-sm transition-all hover:shadow-md">
-      <div 
-        className="absolute top-0 left-0 right-0 h-[3.5px]" 
-        style={{ backgroundColor: accentColor }} 
-      />
+    <div className="bg-white/95 backdrop-blur-md rounded-2xl border border-slate-200/80 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-md transition-all p-5 relative overflow-hidden group">
       <div className="flex items-start justify-between mb-3 relative z-10">
         <div>
-          <p className="text-[0.7rem] font-bold text-slate-500 uppercase tracking-wider mb-1">{label}</p>
-          <div className="flex items-baseline gap-1.5">
-            <h3 className="text-2xl font-black text-slate-900 m-0 tracking-tight" style={{ color: accentColor }}>{value}</h3>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">{label}</p>
+          <div className="flex items-baseline gap-2">
+            <h3 className="text-2xl sm:text-3xl font-black text-slate-900 m-0 tracking-tight">{value}</h3>
             {total > 0 && <span className="text-xs font-semibold text-slate-400">/ {total}</span>}
           </div>
         </div>
         <div 
-          className="w-9 h-9 rounded border flex items-center justify-center shrink-0" 
+          className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-105" 
           style={{ 
             backgroundColor: `${accentColor}15`, 
-            borderColor: `${accentColor}30`, 
             color: accentColor 
           }}
         >
@@ -66,9 +61,9 @@ function StatCard({ label, value, total, color, icon, statColor, trend = "+12%",
         </div>
       </div>
       
-      <div className="flex items-center justify-between relative z-10 pt-1 border-t border-slate-100 text-xs">
-        <span className="text-[0.7rem] text-slate-500 font-medium">
-          {total > 0 ? `${pct}% of roster` : "Registered"}
+      <div className="flex items-center justify-between relative z-10 pt-2 border-t border-slate-100 text-xs">
+        <span className="text-[0.72rem] text-slate-500 font-medium">
+          {total > 0 ? `${pct}% of roster` : "Registered Attendees"}
         </span>
         {total > 0 && (
           <div className="w-20 h-1.5 bg-slate-100 rounded-full overflow-hidden">
@@ -381,12 +376,21 @@ export default function AdminDashboard({ onLogout }) {
   };
 
   const handleTestConnection = async () => {
+    const activeProvider = providers.find(p => p.isActive);
+    if (!activeProvider) {
+      toast({ 
+        type: "warning", 
+        message: "No active email provider configured yet. Please configure a provider below and click 'Save & Set Active' first." 
+      });
+      return;
+    }
+
     setTestLoading(true);
     try {
       await api.post("/settings/test-email");
-      toast({ type: "success", message: "Connection successful. Test email sent!" });
+      toast({ type: "success", message: `Connection test successful! Sent via ${activeProvider.name}.` });
     } catch (err) {
-      toast({ type: "error", message: err.response?.data?.error || "Connection failed." });
+      toast({ type: "error", message: err.response?.data?.error || "Connection test failed." });
     } finally {
       setTestLoading(false);
     }
@@ -509,51 +513,43 @@ export default function AdminDashboard({ onLogout }) {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--bg)" }} className="flex flex-col font-sans">
-      {/* ── Top Institutional Utility Bar ────────────────────────────── */}
-      <div className="geu-utility-bar">
-        <div className="max-w-7xl mx-auto flex items-center justify-between text-xs">
-          <div className="flex items-center gap-3">
-            <span className="font-bold text-amber-300">GRAPHIC ERA (DEEMED TO BE UNIVERSITY)</span>
-            <span className="text-slate-400 hidden sm:inline">|</span>
-            <span className="text-slate-300 hidden sm:inline">NAAC 'A+' Accredited</span>
-            <span className="text-slate-400 hidden md:inline">|</span>
-            <span className="text-slate-300 hidden md:inline">Event Pass &amp; Entry Management System</span>
-          </div>
-          <div className="flex items-center gap-2 text-slate-300 text-[0.7rem]">
-            <span>Portal Mode: <strong>ADMIN CONSOLE</strong></span>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Main Masthead (Exact GEU Logo from Screenshots) ────────── */}
-      <div className="bg-white border-b border-slate-200 py-3 px-4 sm:px-6 shadow-xs">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <img 
-              src={logoImg} 
-              alt="GEU Crest" 
-              className="w-12 h-12 object-contain shrink-0" 
-            />
-            <div className="flex flex-col justify-center">
-              <span className="font-serif text-xl font-bold text-[#A31D24] tracking-tight leading-none">
-                Graphic Era
-              </span>
-              <span className="font-serif text-[0.68rem] text-slate-900 leading-tight">
-                deemed to be <strong className="font-serif">University</strong>
-              </span>
-              <span className="text-[0.55rem] font-bold tracking-[0.25em] text-[#A31D24] uppercase leading-none mt-0.5">
-                DEHRADUN
-              </span>
+    <div className="min-h-screen flex flex-col justify-between font-sans bg-[#F8FAFC]">
+      
+      {/* ── Top University Masthead ───────────────────────────────────── */}
+      <header className="w-full bg-white border-b border-slate-200 shadow-2xs">
+        <div className="w-full px-6 sm:px-10 lg:px-12 py-3.5 flex items-center justify-between gap-4">
+          
+          {/* Left: Official University Logo & Event Selector */}
+          <div className="flex items-center gap-4">
+            <div 
+              className="flex items-center gap-3 cursor-pointer hover:opacity-95 transition-opacity" 
+              onClick={() => setActiveTab("dashboard")}
+            >
+              <img 
+                src={logoImg} 
+                alt="Graphic Era Crest" 
+                className="w-11 h-11 object-contain shrink-0" 
+              />
+              <div className="flex flex-col justify-center">
+                <span className="font-serif text-xl font-bold text-[#A31D24] tracking-tight leading-none">
+                  Graphic Era
+                </span>
+                <span className="font-serif text-[0.68rem] text-slate-800 leading-tight mt-0.5">
+                  deemed to be <strong className="font-serif">University</strong>
+                </span>
+                <span className="text-[0.55rem] font-bold tracking-[0.25em] text-[#A31D24] uppercase leading-none mt-0.5">
+                  DEHRADUN
+                </span>
+              </div>
             </div>
 
-            <div className="h-7 w-px bg-slate-200 mx-2 hidden sm:block" />
+            <div className="h-8 w-px bg-slate-200 hidden md:block" />
 
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-slate-500 hidden sm:inline">Active Event:</span>
+            {/* Active Event Dropdown */}
+            <div className="hidden sm:flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 shadow-2xs">
+              <span className="text-xs font-bold text-slate-500">Active Event:</span>
               <select 
-                className="input select py-1 px-2.5 text-xs font-bold text-[#1E2A78] bg-slate-50 border border-slate-300 rounded-lg"
-                style={{ width: "auto", height: "auto" }}
+                className="bg-transparent text-xs font-bold text-[#1E2A78] focus:outline-none cursor-pointer pr-1"
                 value={activeEventId}
                 onChange={(e) => setActiveEventId(e.target.value)}
               >
@@ -562,10 +558,17 @@ export default function AdminDashboard({ onLogout }) {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 self-end md:self-auto">
+          {/* Right: Refresh & Sign Out */}
+          <div className="flex items-center gap-2.5 shrink-0">
+            <div className="hidden lg:flex items-center gap-2 mr-2">
+              <span className="px-2.5 py-1 rounded-full text-[0.68rem] font-bold bg-blue-50 text-[#1E2A78] border border-blue-200 tracking-wider uppercase">
+                Admin Console
+              </span>
+            </div>
+            
             <button 
               onClick={activeTab === "settings" ? fetchSettings : fetchAttendees} 
-              className="btn btn-secondary btn-sm text-xs"
+              className="btn btn-secondary btn-sm text-xs rounded-xl shadow-2xs flex items-center gap-1.5 cursor-pointer"
               title="Refresh Data"
             >
               <RefreshCw size={13} />
@@ -573,19 +576,20 @@ export default function AdminDashboard({ onLogout }) {
             </button>
             <button 
               onClick={onLogout} 
-              className="btn btn-sm btn-secondary text-xs text-red-700 hover:bg-red-50 border-red-200"
+              className="btn btn-sm text-xs text-red-700 hover:bg-red-50 border border-red-200 rounded-xl flex items-center gap-1.5 cursor-pointer"
             >
               <LogOut size={13} /> 
               <span>Sign Out</span>
             </button>
           </div>
-        </div>
-      </div>
 
-      {/* ── Midnight Navy University Ribbon Navigation (GEU Screenshots) ── */}
-      <nav className="bg-[#0D1038] text-white shadow-sm sticky top-0 z-40 border-b border-slate-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between overflow-x-auto">
-          <div className="flex items-center gap-1.5 py-1.5">
+        </div>
+      </header>
+
+      {/* ── Midnight Navy University Ribbon Navigation ────────────────── */}
+      <nav className="w-full bg-[#0D1038] text-white shadow-sm sticky top-0 z-40 border-b border-slate-800">
+        <div className="w-full px-6 sm:px-10 lg:px-12 flex items-center justify-between overflow-x-auto">
+          <div className="flex items-center gap-2 py-2">
             {[
               { id: "dashboard", label: "Programs & Roster", icon: <Users size={14} /> },
               { id: "history", label: "Upload & Audit History", icon: <Clock size={14} /> },
@@ -598,9 +602,9 @@ export default function AdminDashboard({ onLogout }) {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`px-3.5 py-1.5 text-xs font-bold rounded-full flex items-center gap-1.5 transition-all whitespace-nowrap ${
+                  className={`px-4 py-2 text-xs font-bold rounded-full flex items-center gap-2 transition-all whitespace-nowrap cursor-pointer ${
                     isActive
-                      ? "bg-[#FFB800] text-black shadow-xs font-black"
+                      ? "bg-[#FFB800] text-black font-black shadow-xs"
                       : "text-white/80 hover:bg-white/10 hover:text-white"
                   }`}
                 >
@@ -611,17 +615,19 @@ export default function AdminDashboard({ onLogout }) {
             })}
           </div>
 
-          <div className="text-[0.7rem] text-[#FFB800] font-bold hidden lg:flex items-center gap-2">
+          <div className="text-xs text-[#FFB800] font-bold hidden lg:flex items-center gap-2 shrink-0">
             <span>● Official Event Console</span>
           </div>
         </div>
       </nav>
 
-      <main
-        style={{
-          maxWidth: 1200,
-          margin: "0 auto",
-          padding: "1.5rem 1rem 5rem",
+      {/* ── Main Workspace (Full Width & Perfectly Centered) ──────────── */}
+      <main 
+        className="flex-1 w-full"
+        style={{ 
+          maxWidth: '1440px', 
+          margin: '0 auto', 
+          padding: '2rem 1.5rem 4rem' 
         }}
       >
         {activeTab === "events" ? (
@@ -629,23 +635,45 @@ export default function AdminDashboard({ onLogout }) {
         ) : activeTab === "campaigns" ? (
           <CampaignManagement activeEventId={activeEventId} />
         ) : activeTab === "settings" ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-            <div className="card" style={{ padding: "1.5rem" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
-                <h2 style={{ color: "var(--text-primary)", margin: 0 }}>Email Provider Settings</h2>
+          <div className="flex flex-col gap-6">
+            <div className="bg-white/95 backdrop-blur-xl rounded-2xl border border-slate-200/80 shadow-[0_4px_20px_rgba(0,0,0,0.03)] p-6 sm:p-7">
+              <div className="flex items-center justify-between pb-4 mb-6 border-b border-slate-100 flex-wrap gap-3">
+                <div>
+                  <div className="flex items-center gap-2.5">
+                    <h2 className="text-base font-bold text-slate-900 tracking-tight m-0">Email Provider Settings</h2>
+                    {providers.some(p => p.isActive) ? (
+                      <span className="badge badge-green text-[0.68rem] px-2.5 py-0.5 rounded-full font-bold">
+                        {providers.find(p => p.isActive)?.name} Active
+                      </span>
+                    ) : (
+                      <span className="badge bg-amber-50 text-amber-700 border border-amber-200 text-[0.68rem] px-2.5 py-0.5 rounded-full font-bold">
+                        No Provider Active
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5">Configure authentication and delivery service for automated pass emails</p>
+                </div>
                 <button 
                   onClick={handleTestConnection} 
                   disabled={testLoading}
-                  className="btn btn-sm btn-secondary"
+                  title={!providers.some(p => p.isActive) ? "Configure and save an email provider first" : "Send test email"}
+                  className="btn btn-sm btn-secondary rounded-xl text-xs cursor-pointer shadow-2xs"
                 >
                   {testLoading ? "Testing..." : "Test Connection"}
                 </button>
               </div>
 
-              <div style={{ marginBottom: "1.5rem" }}>
-                <label className="input-label">Select Provider</label>
+              {!providers.some(p => p.isActive) && (
+                <div className="flex items-center gap-2.5 p-3.5 rounded-xl bg-amber-50/80 border border-amber-200/70 text-amber-800 text-xs mb-5 max-w-xl">
+                  <span className="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0 animate-pulse"></span>
+                  <span><strong>Setup Required:</strong> Select your preferred email provider below, fill in credentials, and click <strong>Save &amp; Set Active</strong> before testing.</span>
+                </div>
+              )}
+
+              <div className="mb-5 max-w-xl">
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">Select Provider</label>
                 <select 
-                  className="input select" 
+                  className="input select w-full bg-white border border-slate-200 rounded-xl text-xs sm:text-sm shadow-2xs" 
                   value={settingsProvider} 
                   onChange={(e) => {
                     setSettingsProvider(e.target.value);
@@ -659,23 +687,23 @@ export default function AdminDashboard({ onLogout }) {
                 </select>
               </div>
 
-              <div style={{ marginBottom: "1.5rem" }}>
-                <label className="input-label">Verified Sender Email</label>
+              <div className="mb-5 max-w-xl">
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">Verified Sender Email</label>
                 <input 
                   type="email" 
-                  className="input" 
+                  className="input w-full bg-white border border-slate-200 rounded-xl text-xs sm:text-sm shadow-2xs" 
                   value={settingsSender} 
                   onChange={(e) => setSettingsSender(e.target.value)} 
-                  placeholder="e.g. hello@myfarewell.com" 
+                  placeholder="e.g. events@graphicera.edu.in" 
                 />
               </div>
 
               {settingsProvider === "RESEND" && (
-                <div style={{ marginBottom: "1.5rem" }}>
-                  <label className="input-label">API Key</label>
+                <div className="mb-5 max-w-xl">
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">API Key</label>
                   <input 
                     type="password" 
-                    className="input" 
+                    className="input w-full bg-white border border-slate-200 rounded-xl text-xs sm:text-sm shadow-2xs" 
                     placeholder="re_..." 
                     value={settingsCreds.apiKey || ""} 
                     onChange={(e) => setSettingsCreds({ ...settingsCreds, apiKey: e.target.value })} 
@@ -684,147 +712,157 @@ export default function AdminDashboard({ onLogout }) {
               )}
 
               {settingsProvider === "GOOGLE" && (
-                <>
-                  <div style={{ marginBottom: "1rem" }}>
-                    <label className="input-label">Client ID</label>
-                    <input type="password" className="input" value={settingsCreds.clientId || ""} onChange={(e) => setSettingsCreds({ ...settingsCreds, clientId: e.target.value })} />
+                <div className="space-y-4 max-w-xl mb-5">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Client ID</label>
+                    <input type="password" className="input w-full bg-white border border-slate-200 rounded-xl text-xs sm:text-sm shadow-2xs" value={settingsCreds.clientId || ""} onChange={(e) => setSettingsCreds({ ...settingsCreds, clientId: e.target.value })} />
                   </div>
-                  <div style={{ marginBottom: "1rem" }}>
-                    <label className="input-label">Client Secret</label>
-                    <input type="password" className="input" value={settingsCreds.clientSecret || ""} onChange={(e) => setSettingsCreds({ ...settingsCreds, clientSecret: e.target.value })} />
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Client Secret</label>
+                    <input type="password" className="input w-full bg-white border border-slate-200 rounded-xl text-xs sm:text-sm shadow-2xs" value={settingsCreds.clientSecret || ""} onChange={(e) => setSettingsCreds({ ...settingsCreds, clientSecret: e.target.value })} />
                   </div>
-                  <div style={{ marginBottom: "1.5rem" }}>
-                    <label className="input-label">Refresh Token</label>
-                    <input type="password" className="input" value={settingsCreds.refreshToken || ""} onChange={(e) => setSettingsCreds({ ...settingsCreds, refreshToken: e.target.value })} />
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Refresh Token</label>
+                    <input type="password" className="input w-full bg-white border border-slate-200 rounded-xl text-xs sm:text-sm shadow-2xs" value={settingsCreds.refreshToken || ""} onChange={(e) => setSettingsCreds({ ...settingsCreds, refreshToken: e.target.value })} />
                   </div>
-                </>
+                </div>
               )}
 
               {settingsProvider === "AWS_SES" && (
-                <>
-                  <div style={{ marginBottom: "1rem" }}>
-                    <label className="input-label">Access Key ID</label>
-                    <input type="password" className="input" value={settingsCreds.accessKey || ""} onChange={(e) => setSettingsCreds({ ...settingsCreds, accessKey: e.target.value })} />
+                <div className="space-y-4 max-w-xl mb-5">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Access Key ID</label>
+                    <input type="password" className="input w-full bg-white border border-slate-200 rounded-xl text-xs sm:text-sm shadow-2xs" value={settingsCreds.accessKey || ""} onChange={(e) => setSettingsCreds({ ...settingsCreds, accessKey: e.target.value })} />
                   </div>
-                  <div style={{ marginBottom: "1rem" }}>
-                    <label className="input-label">Secret Access Key</label>
-                    <input type="password" className="input" value={settingsCreds.secretKey || ""} onChange={(e) => setSettingsCreds({ ...settingsCreds, secretKey: e.target.value })} />
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Secret Access Key</label>
+                    <input type="password" className="input w-full bg-white border border-slate-200 rounded-xl text-xs sm:text-sm shadow-2xs" value={settingsCreds.secretKey || ""} onChange={(e) => setSettingsCreds({ ...settingsCreds, secretKey: e.target.value })} />
                   </div>
-                  <div style={{ marginBottom: "1.5rem" }}>
-                    <label className="input-label">Region</label>
-                    <input type="text" className="input" placeholder="e.g. us-east-1" value={settingsCreds.region || ""} onChange={(e) => setSettingsCreds({ ...settingsCreds, region: e.target.value })} />
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Region</label>
+                    <input type="text" className="input w-full bg-white border border-slate-200 rounded-xl text-xs sm:text-sm shadow-2xs" placeholder="e.g. us-east-1" value={settingsCreds.region || ""} onChange={(e) => setSettingsCreds({ ...settingsCreds, region: e.target.value })} />
                   </div>
-                </>
+                </div>
               )}
 
               {settingsProvider === "SMTP" && (
-                <>
-                  <div style={{ marginBottom: "1rem" }}>
-                    <label className="input-label">SMTP Host</label>
-                    <input type="text" className="input" placeholder="e.g. smtp.gmail.com" value={settingsCreds.host || ""} onChange={(e) => setSettingsCreds({ ...settingsCreds, host: e.target.value })} />
+                <div className="space-y-4 max-w-xl mb-5">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">SMTP Host</label>
+                    <input type="text" className="input w-full bg-white border border-slate-200 rounded-xl text-xs sm:text-sm shadow-2xs" placeholder="e.g. smtp.gmail.com" value={settingsCreds.host || ""} onChange={(e) => setSettingsCreds({ ...settingsCreds, host: e.target.value })} />
                   </div>
-                  <div style={{ marginBottom: "1rem" }}>
-                    <label className="input-label">SMTP Port</label>
-                    <input type="text" className="input" placeholder="e.g. 465 or 587" value={settingsCreds.port || ""} onChange={(e) => setSettingsCreds({ ...settingsCreds, port: e.target.value })} />
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">SMTP Port</label>
+                    <input type="text" className="input w-full bg-white border border-slate-200 rounded-xl text-xs sm:text-sm shadow-2xs" placeholder="e.g. 465 or 587" value={settingsCreds.port || ""} onChange={(e) => setSettingsCreds({ ...settingsCreds, port: e.target.value })} />
                   </div>
-                  <div style={{ marginBottom: "1rem" }}>
-                    <label className="input-label">Username (Email)</label>
-                    <input type="text" className="input" placeholder="e.g. you@gmail.com" value={settingsCreds.username || ""} onChange={(e) => setSettingsCreds({ ...settingsCreds, username: e.target.value })} />
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Username (Email)</label>
+                    <input type="text" className="input w-full bg-white border border-slate-200 rounded-xl text-xs sm:text-sm shadow-2xs" placeholder="e.g. you@gmail.com" value={settingsCreds.username || ""} onChange={(e) => setSettingsCreds({ ...settingsCreds, username: e.target.value })} />
                   </div>
-                  <div style={{ marginBottom: "1.5rem" }}>
-                    <label className="input-label">Password (App Password)</label>
-                    <input type="password" className="input" placeholder="16-letter App Password" value={settingsCreds.password || ""} onChange={(e) => setSettingsCreds({ ...settingsCreds, password: e.target.value })} />
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Password (App Password)</label>
+                    <input type="password" className="input w-full bg-white border border-slate-200 rounded-xl text-xs sm:text-sm shadow-2xs" placeholder="16-letter App Password" value={settingsCreds.password || ""} onChange={(e) => setSettingsCreds({ ...settingsCreds, password: e.target.value })} />
                   </div>
-                </>
+                </div>
               )}
 
               <button 
                 onClick={handleSaveSettings} 
                 disabled={settingsLoading} 
-                className="btn btn-primary"
+                className="btn btn-geu-yellow font-bold text-xs sm:text-sm px-6 py-2.5 rounded-xl shadow-md cursor-pointer"
               >
                 {settingsLoading ? "Saving..." : "Save & Set Active"}
               </button>
 
-              <div style={{ marginTop: "2rem" }}>
-                <h3 style={{ color: "var(--text-secondary)", marginBottom: "1rem" }}>Current Active Configuration</h3>
-                <div style={{ background: "var(--surface-2)", padding: "1rem", borderRadius: "8px" }}>
+              <div className="mt-8 pt-6 border-t border-slate-100">
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Current Active Configuration</h3>
+                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
                   {providers.filter(p => p.isActive).map(p => (
-                    <div key={p.id}>
-                      <p><strong>Provider:</strong> {p.name}</p>
-                      <p><strong>Sender:</strong> {p.senderEmail}</p>
-                      <p><strong>Status:</strong> <span className="badge badge-green">Connected</span></p>
+                    <div key={p.id} className="space-y-1 text-xs">
+                      <p className="text-slate-700"><strong>Provider:</strong> {p.name}</p>
+                      <p className="text-slate-700"><strong>Sender:</strong> {p.senderEmail}</p>
+                      <p className="text-slate-700"><strong>Status:</strong> <span className="badge badge-green ml-1">Connected &amp; Active</span></p>
                     </div>
                   ))}
                   {providers.filter(p => p.isActive).length === 0 && (
-                    <p style={{ color: "var(--text-muted)" }}>No provider active.</p>
+                    <div className="flex items-center gap-2 text-xs text-slate-500 py-1">
+                      <span className="w-2 h-2 rounded-full bg-slate-300 inline-block"></span>
+                      <span>No provider active yet. Enter credentials above and click <strong>Save &amp; Set Active</strong>.</span>
+                    </div>
                   )}
                 </div>
               </div>
             </div>
 
-            <div className="card" style={{ padding: "1.5rem" }}>
-              <h2 style={{ marginBottom: "1rem", color: "var(--text-primary)" }}>Audit Logs</h2>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.875rem" }}>
+            <div className="bg-white/95 backdrop-blur-xl rounded-2xl border border-slate-200/80 shadow-[0_4px_20px_rgba(0,0,0,0.03)] p-6 sm:p-7">
+              <h2 className="text-base font-bold text-slate-900 tracking-tight mb-4">System Audit Logs</h2>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-200">
+                      <th className="px-4 py-2.5 text-[0.7rem] font-bold text-slate-500 uppercase tracking-wider">Time</th>
+                      <th className="px-4 py-2.5 text-[0.7rem] font-bold text-slate-500 uppercase tracking-wider">Admin</th>
+                      <th className="px-4 py-2.5 text-[0.7rem] font-bold text-slate-500 uppercase tracking-wider">Action</th>
+                      <th className="px-4 py-2.5 text-[0.7rem] font-bold text-slate-500 uppercase tracking-wider">Details</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {auditLogs.length === 0 ? (
+                      <tr><td colSpan={4} className="text-center py-8 text-slate-400 font-medium">No logs recorded yet.</td></tr>
+                    ) : auditLogs.map(log => (
+                      <tr key={log.id} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="px-4 py-2.5 text-slate-500 font-mono">{new Date(log.createdAt).toLocaleString()}</td>
+                        <td className="px-4 py-2.5 font-bold text-slate-900">{log.admin?.name || "System"}</td>
+                        <td className="px-4 py-2.5 font-medium text-slate-700">{log.action}</td>
+                        <td className="px-4 py-2.5 text-slate-500">{log.details}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        ) : activeTab === "history" ? (
+          <div className="bg-white/95 backdrop-blur-xl rounded-2xl border border-slate-200/80 shadow-[0_4px_20px_rgba(0,0,0,0.03)] p-6 sm:p-7">
+            <div className="mb-4">
+              <h2 className="text-base font-bold text-slate-900 tracking-tight m-0">Upload &amp; Dataset History</h2>
+              <p className="text-xs text-slate-500 mt-0.5">View and restore previous attendee batch rosters</p>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs">
                 <thead>
-                  <tr style={{ background: "var(--surface-2)" }}>
-                    <th style={{ padding: "0.75rem", textAlign: "left", color: "var(--text-muted)" }}>Time</th>
-                    <th style={{ padding: "0.75rem", textAlign: "left", color: "var(--text-muted)" }}>Admin</th>
-                    <th style={{ padding: "0.75rem", textAlign: "left", color: "var(--text-muted)" }}>Action</th>
-                    <th style={{ padding: "0.75rem", textAlign: "left", color: "var(--text-muted)" }}>Details</th>
+                  <tr className="bg-slate-50 border-b border-slate-200">
+                    <th className="px-4 py-3 text-[0.7rem] font-bold text-slate-500 uppercase tracking-wider">Event Name</th>
+                    <th className="px-4 py-3 text-[0.7rem] font-bold text-slate-500 uppercase tracking-wider">Date</th>
+                    <th className="px-4 py-3 text-[0.7rem] font-bold text-slate-500 uppercase tracking-wider text-center">Records</th>
+                    <th className="px-4 py-3 text-[0.7rem] font-bold text-slate-500 uppercase tracking-wider text-center">Status</th>
+                    <th className="px-4 py-3 text-[0.7rem] font-bold text-slate-500 uppercase tracking-wider text-center">Actions</th>
                   </tr>
                 </thead>
-                <tbody>
-                  {auditLogs.length === 0 ? (
-                    <tr><td colSpan={4} style={{ textAlign: "center", padding: "1rem" }}>No logs found.</td></tr>
-                  ) : auditLogs.map(log => (
-                    <tr key={log.id} style={{ borderBottom: "1px solid var(--border)" }}>
-                      <td style={{ padding: "0.75rem", color: "var(--text-muted)" }}>{new Date(log.createdAt).toLocaleString()}</td>
-                      <td style={{ padding: "0.75rem" }}>{log.admin?.name || "System"}</td>
-                      <td style={{ padding: "0.75rem" }}>{log.action}</td>
-                      <td style={{ padding: "0.75rem" }}>{log.details}</td>
+                <tbody className="divide-y divide-slate-100">
+                  {datasets.length === 0 ? (
+                    <tr><td colSpan="5" className="text-center py-12 text-slate-400 font-medium">No previous uploads found.</td></tr>
+                  ) : datasets.map(ds => (
+                    <tr key={ds.id} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="px-4 py-3 font-bold text-slate-900">{ds.eventName}</td>
+                      <td className="px-4 py-3 text-slate-500">{new Date(ds.createdAt).toLocaleDateString()}</td>
+                      <td className="px-4 py-3 text-center font-bold text-slate-700">{ds.totalRecords}</td>
+                      <td className="px-4 py-3 text-center">
+                        {ds.isActive ? <span className="badge badge-green">Active</span> : <span className="badge badge-muted">Archived</span>}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {!ds.isActive && (
+                          <div className="flex items-center justify-center gap-1.5">
+                            <button onClick={() => handleRestoreDataset(ds.id)} className="btn btn-xs btn-geu-yellow rounded-lg cursor-pointer">Restore</button>
+                            <button onClick={() => handleDeleteDataset(ds.id)} className="btn btn-xs btn-secondary text-red-600 rounded-lg cursor-pointer">Delete</button>
+                          </div>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          </div>
-        ) : activeTab === "history" ? (
-          <div className="card" style={{ padding: "1.5rem" }}>
-            <h2 style={{ marginBottom: "1rem", color: "var(--text-primary)" }}>Upload History</h2>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                <tr style={{ background: "var(--surface-2)" }}>
-                  <th style={{ padding: "0.75rem", textAlign: "left", color: "var(--text-muted)" }}>Event Name</th>
-                  <th style={{ padding: "0.75rem", textAlign: "left", color: "var(--text-muted)" }}>Date</th>
-                  <th style={{ padding: "0.75rem", textAlign: "center", color: "var(--text-muted)" }}>Records</th>
-                  <th style={{ padding: "0.75rem", textAlign: "center", color: "var(--text-muted)" }}>Status</th>
-                  <th style={{ padding: "0.75rem", textAlign: "center", color: "var(--text-muted)" }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {datasets.length === 0 ? (
-                  <tr><td colSpan="5" style={{ textAlign: "center", padding: "2rem" }}>No history found.</td></tr>
-                ) : datasets.map(ds => (
-                  <tr key={ds.id} style={{ borderBottom: "1px solid var(--border)" }}>
-                    <td style={{ padding: "1rem" }}>{ds.eventName}</td>
-                    <td style={{ padding: "1rem", color: "var(--text-muted)" }}>{new Date(ds.createdAt).toLocaleDateString()}</td>
-                    <td style={{ padding: "1rem", textAlign: "center" }}>{ds.totalRecords}</td>
-                    <td style={{ padding: "1rem", textAlign: "center" }}>
-                      {ds.isActive ? <span className="badge badge-green">Active</span> : <span className="badge badge-muted">Archived</span>}
-                    </td>
-                    <td style={{ padding: "1rem", textAlign: "center" }}>
-                      {!ds.isActive && (
-                        <>
-                          <button onClick={() => handleRestoreDataset(ds.id)} className="btn btn-sm btn-primary" style={{ marginRight: "0.5rem" }}>Restore</button>
-                          <button onClick={() => handleDeleteDataset(ds.id)} className="btn btn-sm btn-secondary">Delete</button>
-                        </>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
           </div>
         ) : (
           <>
@@ -930,132 +968,79 @@ export default function AdminDashboard({ onLogout }) {
 
         {/* Upload */}
         {!activeCampaign && (
-          <div
-            className="card"
-            style={{ padding: "1.5rem", marginBottom: "1.25rem" }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "0.625rem",
-                marginBottom: "1.125rem",
-              }}
-            >
-              <Upload size={17} style={{ color: "var(--brand)" }} />
-              <h2
-                style={{
-                  fontSize: "0.9375rem",
-                  fontWeight: 700,
-                  color: "var(--text-primary)",
-                  margin: 0,
-                }}
-              >
-                Bulk Import
-              </h2>
-              <div
-                style={{ marginLeft: "auto", display: "flex", gap: "0.375rem" }}
-              >
-                {[1, 2, 3, 4].map((s) => (
+          <div className="bg-white/95 backdrop-blur-xl rounded-2xl border border-slate-200/80 shadow-[0_4px_20px_rgba(0,0,0,0.03)] p-6 sm:p-7 mb-6">
+            <div className="flex items-center justify-between gap-3 mb-6 pb-4 border-b border-slate-100 flex-wrap">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#1E2A78] border border-blue-100 flex items-center justify-center font-bold shrink-0">
+                  <Upload size={18} />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-slate-900 tracking-tight m-0">
+                    Bulk Import Attendee Roster
+                  </h2>
+                  <p className="text-slate-500 text-xs mt-0.5">
+                    Upload .xlsx or .xls spreadsheet with attendee details
+                  </p>
+                </div>
+              </div>
+
+              {/* Step indicator */}
+              <div className="flex items-center gap-1.5 bg-slate-100/90 rounded-xl p-1 border border-slate-200/70">
+                {[
+                  { num: 1, label: "Upload" },
+                  { num: 2, label: "Map" },
+                  { num: 3, label: "Validate" },
+                  { num: 4, label: "Done" },
+                ].map((s) => (
                   <div
-                    key={s}
-                    style={{
-                      width: 26,
-                      height: 26,
-                      borderRadius: "50%",
-                      fontSize: "0.7rem",
-                      fontWeight: 800,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      background:
-                        step >= s ? "var(--brand)" : "var(--surface-2)",
-                      color: step >= s ? "#fff" : "var(--text-muted)",
-                      border: `2px solid ${step >= s ? "var(--brand)" : "var(--border)"}`,
-                      boxShadow:
-                        step >= s ? "0 2px 8px rgba(99,102,241,0.35)" : "none",
-                      transition: "all 0.3s",
-                    }}
+                    key={s.num}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                      step === s.num
+                        ? "bg-[#0D1038] text-white shadow-xs"
+                        : step > s.num
+                        ? "bg-emerald-100 text-emerald-800"
+                        : "text-slate-400"
+                    }`}
                   >
-                    {s}
+                    <span>{step > s.num ? "✓" : s.num}</span>
+                    <span className="hidden sm:inline text-[0.7rem]">{s.label}</span>
                   </div>
                 ))}
               </div>
             </div>
 
             {error && (
-              <div
-                style={{
-                  background: "var(--red-light)",
-                  color: "var(--red)",
-                  borderRadius: 10,
-                  padding: "0.7rem 1rem",
-                  fontSize: "0.875rem",
-                  fontWeight: 500,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.5rem",
-                  marginBottom: "1rem",
-                }}
-              >
-                <AlertCircle size={15} />
-                {error}
+              <div className="mb-4 p-3.5 rounded-xl bg-red-50 text-red-700 border border-red-200 text-xs sm:text-sm font-medium flex items-center gap-2.5 animate-shake">
+                <AlertCircle size={16} className="shrink-0" />
+                <span>{error}</span>
               </div>
             )}
 
             {step === 1 && (
-              <div style={{ textAlign: "center", padding: "1.75rem 1rem" }}>
-                <div
-                  style={{
-                    width: 60,
-                    height: 60,
-                    borderRadius: 16,
-                    background: "var(--brand-light)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    margin: "0 auto 1rem",
-                    color: "var(--brand)",
-                  }}
-                >
-                  {loading ? (
-                    <Loader2 size={28} className="animate-spin" />
-                  ) : (
-                    <FileSpreadsheet size={28} />
-                  )}
-                </div>
-                <h3
-                  style={{
-                    fontWeight: 700,
-                    color: "var(--text-primary)",
-                    margin: "0 0 0.375rem",
-                    fontSize: "1rem",
-                  }}
-                >
-                  Upload Excel File
-                </h3>
-                <p
-                  style={{
-                    color: "var(--text-muted)",
-                    fontSize: "0.875rem",
-                    margin: "0 0 1.5rem",
-                  }}
-                >
-                  Select a .xlsx file with attendee details
-                </p>
-                <label style={{ cursor: "pointer" }}>
-                  <span
-                    className="btn btn-primary"
-                    style={{ pointerEvents: "none" }}
-                  >
-                    <Upload size={15} /> Choose File
+              <div>
+                <label className="block border-2 border-dashed border-slate-200 hover:border-blue-400 bg-slate-50/50 hover:bg-blue-50/20 rounded-2xl p-8 sm:p-12 text-center transition-all cursor-pointer group">
+                  <div className="w-14 h-14 rounded-2xl bg-white border border-slate-200 flex items-center justify-center mx-auto mb-3.5 text-[#1E2A78] group-hover:scale-105 group-hover:border-blue-300 transition-all shadow-xs">
+                    {loading ? (
+                      <Loader2 size={26} className="animate-spin text-blue-600" />
+                    ) : (
+                      <FileSpreadsheet size={26} />
+                    )}
+                  </div>
+                  <h3 className="font-bold text-slate-900 text-base mb-1">
+                    Upload Attendee Spreadsheet
+                  </h3>
+                  <p className="text-slate-500 text-xs sm:text-sm max-w-md mx-auto mb-5 leading-relaxed">
+                    Drop your Excel file (.xlsx, .xls) here or click to browse. Features automatic column detection for Name, Roll No, and Email.
+                  </p>
+                  <span className="btn btn-geu-yellow font-bold text-xs sm:text-sm px-6 py-2.5 rounded-xl shadow-md cursor-pointer inline-flex items-center gap-2 pointer-events-none">
+                    <Upload size={16} /> Choose File
                   </span>
                   <input
                     type="file"
                     accept=".xlsx,.xls"
                     onChange={handleFileChange}
                     disabled={loading}
-                    style={{ display: "none" }}
+                    className="hidden"
                   />
                 </label>
               </div>
@@ -1271,89 +1256,58 @@ export default function AdminDashboard({ onLogout }) {
 
         {/* Email Config */}
         {!loading && (
-          <div
-            className="card"
-            style={{ marginBottom: "1.25rem", overflow: "hidden" }}
-          >
+          <div className="bg-white/95 backdrop-blur-xl rounded-2xl border border-slate-200/80 shadow-[0_4px_20px_rgba(0,0,0,0.02)] mb-6 overflow-hidden">
             <button
               onClick={() => setShowEmailConfig((v) => !v)}
-              style={{
-                width: "100%",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                padding: "1rem 1.25rem",
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                color: "var(--text-primary)",
-              }}
+              className="w-full flex items-center justify-between p-4 sm:p-5 bg-white hover:bg-slate-50/80 transition-colors cursor-pointer text-left focus:outline-none"
             >
-              <span
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.5rem",
-                  fontWeight: 700,
-                  fontSize: "0.9rem",
-                }}
-              >
-                <MessageSquare size={15} style={{ color: "var(--brand)" }} />{" "}
-                Email Configuration
+              <span className="flex items-center gap-2.5 font-bold text-sm text-slate-900">
+                <div className="w-8 h-8 rounded-lg bg-blue-50 text-[#1E2A78] flex items-center justify-center shrink-0">
+                  <MessageSquare size={16} />
+                </div>
+                <span>Campaign &amp; Pass Email Delivery Settings</span>
               </span>
               <ChevronDown
-                size={16}
-                style={{
-                  color: "var(--text-muted)",
-                  transform: showEmailConfig ? "rotate(180deg)" : "none",
-                  transition: "transform 0.25s",
-                }}
+                size={18}
+                className={`text-slate-400 transition-transform duration-200 ${showEmailConfig ? "rotate-180" : ""}`}
               />
             </button>
             {showEmailConfig && (
-              <div
-                className="animate-fade-in"
-                style={{ padding: "0 1.25rem 1.25rem" }}
-              >
-                <hr className="divider" style={{ marginBottom: "1rem" }} />
-                <label className="input-label" htmlFor="custom-msg">
-                  Custom Message (Optional)
-                </label>
-                <textarea
-                  id="custom-msg"
-                  className="input"
-                  style={{ height: 90, resize: "vertical" }}
-                  placeholder="Message to include above QR in email…"
-                  value={customMessage}
-                  onChange={(e) => setCustomMessage(e.target.value)}
-                />
-                <p
-                  style={{
-                    color: "var(--text-muted)",
-                    fontSize: "0.75rem",
-                    margin: "0.375rem 0 1rem",
-                  }}
-                >
-                  Appears above QR code in the email.
-                </p>
-                <button
-                  onClick={handleStartCampaign}
-                  disabled={
-                    activeCampaign || campaignActionLoading ||
-                    !attendees.filter((a) => !a.emailSent && a.email).length
-                  }
-                  className="btn btn-primary"
-                  style={{ width: "100%" }}
-                >
-                  <Send size={15} /> {activeCampaign ? "Campaign Active" : "Start Email Campaign"}
-                </button>
+              <div className="p-5 pt-0 border-t border-slate-100 bg-slate-50/40 animate-fade-in">
+                <div className="pt-4">
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5" htmlFor="custom-msg">
+                    Custom Email Message (Optional)
+                  </label>
+                  <textarea
+                    id="custom-msg"
+                    className="input w-full bg-white border-slate-200 rounded-xl text-xs sm:text-sm p-3 focus:border-blue-500 transition-all shadow-2xs"
+                    style={{ height: 85, resize: "vertical" }}
+                    placeholder="Enter custom announcement or instructions to display above the QR code in the email..."
+                    value={customMessage}
+                    onChange={(e) => setCustomMessage(e.target.value)}
+                  />
+                  <p className="text-slate-400 text-xs mt-1 mb-4">
+                    This message will appear directly above the unique QR pass banner in the dispatched emails.
+                  </p>
+                  <button
+                    onClick={handleStartCampaign}
+                    disabled={
+                      activeCampaign || campaignActionLoading ||
+                      !attendees.filter((a) => !a.emailSent && a.email).length
+                    }
+                    className="btn btn-geu-yellow font-bold text-xs sm:text-sm px-6 py-2.5 rounded-xl shadow-md cursor-pointer flex items-center gap-2"
+                  >
+                    <Send size={15} /> 
+                    <span>{activeCampaign ? "Campaign Active" : "Start Email Campaign"}</span>
+                  </button>
+                </div>
               </div>
             )}
           </div>
         )}
 
         {/* Attendee Table Component */}
-        <div id="alist" className="mb-4">
+        <div id="alist" className="mb-6">
           <AttendeeTable 
             filtered={filtered}
             stats={stats}
@@ -1374,8 +1328,10 @@ export default function AdminDashboard({ onLogout }) {
         </div>
         </>
         )}
-        <GlobalFooter />
       </main>
+
+      {/* ── Full Width Global Footer ───────────────────────────────── */}
+      <GlobalFooter />
       <DeleteModal
         isOpen={deleteModal.isOpen}
         onClose={() => setDeleteModal({ isOpen: false, type: null, id: null, isProcessing: false })}

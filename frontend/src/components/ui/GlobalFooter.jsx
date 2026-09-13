@@ -3,7 +3,7 @@ import React from 'react';
 export const GlobalFooter = () => (
   <footer className="w-full bg-white border-t border-slate-200 py-5 text-slate-600 font-sans z-10">
     <div className="w-full px-6 sm:px-10 lg:px-12 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
-      
+
       {/* Left branding */}
       <div className="flex items-center gap-2 text-slate-500 text-center sm:text-left">
         <span className="font-bold text-slate-800">Graphic Era (Deemed to be University)</span>
@@ -14,9 +14,7 @@ export const GlobalFooter = () => (
       {/* Right Credits - Pushed to the far end */}
       <div className="text-slate-500 text-center sm:text-right">
         <span>Designed &amp; Developed by </span>
-        <strong className="text-[#1E2A78] font-bold">Sameer Lohani</strong>
-        <span> &amp; </span>
-        <strong className="text-[#1E2A78] font-bold">Varun Dobhal</strong>
+        <strong className="text-[#1E2A78] font-bold">Deptartment Of Computer Science and Engineering</strong>
       </div>
 
     </div>

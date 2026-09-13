@@ -62,7 +62,7 @@ export default function LandingPage() {
             
             {/* 1. Admin Portal */}
             <div 
-              onClick={() => navigate('/login')}
+              onClick={() => navigate('/login?portal=admin')}
               className="bg-white/95 backdrop-blur-xl rounded-[28px] border border-white/80 shadow-[0_20px_50px_rgba(0,0,0,0.06)] hover:shadow-[0_25px_60px_rgba(0,0,0,0.1)] transition-all duration-300 p-8 sm:p-10 flex flex-col justify-between cursor-pointer group"
             >
               <div>
@@ -81,7 +81,7 @@ export default function LandingPage() {
 
               <div className="mt-8 pt-6 border-t border-slate-100">
                 <button 
-                  onClick={(e) => { e.stopPropagation(); navigate('/login'); }} 
+                  onClick={(e) => { e.stopPropagation(); navigate('/login?portal=admin'); }} 
                   className="btn btn-geu-yellow w-full py-3 text-sm font-black flex items-center justify-center gap-2 rounded-xl shadow-xs cursor-pointer"
                 >
                   <span>Go to Admin Portal</span>
@@ -92,7 +92,7 @@ export default function LandingPage() {
 
             {/* 2. Volunteer Scanner */}
             <div 
-              onClick={() => navigate('/login')}
+              onClick={() => navigate('/login?portal=volunteer')}
               className="bg-white/95 backdrop-blur-xl rounded-[28px] border border-white/80 shadow-[0_20px_50px_rgba(0,0,0,0.06)] hover:shadow-[0_25px_60px_rgba(0,0,0,0.1)] transition-all duration-300 p-8 sm:p-10 flex flex-col justify-between cursor-pointer group"
             >
               <div>
@@ -111,7 +111,7 @@ export default function LandingPage() {
 
               <div className="mt-8 pt-6 border-t border-slate-100">
                 <button 
-                  onClick={(e) => { e.stopPropagation(); navigate('/login'); }} 
+                  onClick={(e) => { e.stopPropagation(); navigate('/login?portal=volunteer'); }} 
                   className="btn btn-geu-yellow w-full py-3 text-sm font-black flex items-center justify-center gap-2 rounded-xl shadow-xs cursor-pointer"
                 >
                   <span>Open Scanner Terminal</span>

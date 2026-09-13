@@ -1,9 +1,27 @@
 import { useEffect, useState, useRef } from 'react';
 import jsQR from 'jsqr';
-import { BadgeCheck, XCircle, Lock, LogOut, ScanLine, AlertTriangle, RefreshCw, ChevronDown, Award } from 'lucide-react';
+import { 
+  BadgeCheck, 
+  XCircle, 
+  Lock, 
+  LogOut, 
+  ScanLine, 
+  AlertTriangle, 
+  RefreshCw, 
+  ChevronDown, 
+  Award,
+  KeyRound,
+  Hash,
+  Send,
+  Camera,
+  CheckCircle2,
+  MapPin,
+  ArrowRight
+} from 'lucide-react';
 import api from '../utils/api';
 import { useToast } from '../context/ToastContext';
 import { GlobalFooter } from '../components/ui/GlobalFooter';
+import { AmbientBackground } from '../components/ui/AmbientBackground';
 import logoImg from '../assets/logo.png';
 
 export default function VolunteerScanner({ role, onLogout }) {
@@ -336,58 +354,138 @@ export default function VolunteerScanner({ role, onLogout }) {
 
         {/* ── Manual OTP Fallback Panel ────────────────────────────────── */}
         {useOtp && (
-          <div className="absolute inset-0 bg-[#F8FAFC] flex flex-col items-center justify-center p-4 overflow-y-auto">
-            <div className="card w-full max-w-sm p-6 bg-white border border-slate-300 shadow-md">
-              <div className="text-center mb-6 pb-4 border-b border-slate-200">
-                <div className="w-10 h-10 rounded-full bg-blue-50 border border-blue-200 flex items-center justify-center mx-auto mb-2 text-[#1E2A78]">
-                  <Lock size={20} />
+          <div 
+            className="absolute inset-0 z-30 bg-slate-50/75 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6 overflow-y-auto"
+            style={{ minHeight: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
+            <AmbientBackground />
+            
+            <div className="w-full max-w-md bg-white/95 backdrop-blur-2xl rounded-[32px] border border-white/80 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.09)] p-8 sm:p-10 relative z-10 animate-slide-up my-auto">
+              
+              {/* Header with Icon, Title & Checkpoint */}
+              <div className="flex flex-col items-center justify-center text-center pb-6 mb-6 border-b border-slate-100 w-full">
+                <div 
+                  className="w-16 h-16 rounded-2xl bg-blue-50 text-[#1E2A78] border border-blue-100/90 flex items-center justify-center mb-3.5 shadow-xs"
+                  style={{ margin: '0 auto' }}
+                >
+                  <KeyRound size={28} />
                 </div>
-                <h2 className="text-lg font-bold text-slate-900 uppercase tracking-tight">Manual Roll &amp; OTP</h2>
-                <p className="text-slate-500 text-xs font-medium mt-0.5">
-                  Checkpoint: <strong>{selectedCheckpoint ? selectedCheckpoint.name : 'None Selected'}</strong>
+                
+                <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                  Manual Roll &amp; OTP
+                </h2>
+                
+                <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
+                  Verify &amp; admit student without camera QR pass
                 </p>
+
+                {/* Gate / Checkpoint indicator badge */}
+                <div className="mt-3.5 inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-100/90 text-xs text-slate-700 font-semibold border border-slate-200/80">
+                  <MapPin size={13} className="text-[#1E2A78]" />
+                  <span>Checkpoint:</span>
+                  {selectedCheckpoint ? (
+                    <span className="font-bold text-slate-900">{selectedCheckpoint.name}</span>
+                  ) : (
+                    <span className="text-amber-800 font-bold bg-amber-100/80 px-2 py-0.5 rounded-md">
+                      None Selected
+                    </span>
+                  )}
+                </div>
               </div>
 
+              {/* Checkpoint Quick-Picker if none selected */}
+              {!selectedCheckpoint && checkpoints.length > 0 && (
+                <div className="mb-5 p-4 rounded-2xl bg-amber-50/90 border border-amber-200/80 text-xs text-amber-900">
+                  <p className="font-bold mb-2 flex items-center gap-1.5">
+                    <AlertTriangle size={15} className="text-amber-600 shrink-0" />
+                    <span>Select gate checkpoint to enable verification:</span>
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {checkpoints.filter(c => c.isActive).map(cp => (
+                      <button
+                        key={cp.id}
+                        type="button"
+                        onClick={() => setSelectedCheckpoint(cp)}
+                        className="px-3 py-1.5 rounded-xl bg-white border border-amber-300 font-bold text-amber-900 hover:bg-amber-100/80 transition-colors shadow-2xs cursor-pointer"
+                      >
+                        {cp.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {errorMsg && (
-                <div className="bg-red-50 text-red-800 rounded p-3 text-xs font-semibold flex items-center gap-2 mb-4 border border-red-200">
-                  <AlertTriangle size={15} className="shrink-0 text-red-600"/>
-                  <span>{errorMsg}</span>
+                <div className="bg-red-50/95 text-red-900 rounded-2xl p-4 text-xs font-semibold flex items-start gap-2.5 mb-5 border border-red-200/80 shadow-xs animate-shake">
+                  <AlertTriangle size={16} className="shrink-0 text-red-600 mt-0.5"/>
+                  <span className="leading-relaxed">{errorMsg}</span>
                 </div>
               )}
 
               {!otpSent ? (
-                <form onSubmit={handleSendOtp} className="space-y-4">
+                <form onSubmit={handleSendOtp} className="space-y-5">
                   <div>
-                    <label className="input-label" htmlFor="otp-roll">University Roll Number</label>
-                    <input 
-                      id="otp-roll" 
-                      className="input" 
-                      type="text" 
-                      placeholder="e.g. GEU/22/01482" 
-                      value={roll} 
-                      onChange={e => setRoll(e.target.value)} 
-                      required 
-                      disabled={loading} 
-                      autoCapitalize="characters" 
-                    />
+                    <label className="block text-xs sm:text-sm font-bold text-slate-700 mb-2" htmlFor="otp-roll">
+                      University Roll Number <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative flex items-center">
+                      <Hash size={18} className="absolute left-4 text-slate-400 pointer-events-none" />
+                      <input 
+                        id="otp-roll" 
+                        className="w-full bg-slate-50/80 border border-slate-200 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 rounded-2xl text-sm sm:text-base font-semibold transition-all" 
+                        style={{ paddingLeft: '3rem', paddingTop: '0.85rem', paddingBottom: '0.85rem' }}
+                        type="text" 
+                        placeholder="e.g. GEU/22/01482" 
+                        value={roll} 
+                        onChange={e => setRoll(e.target.value.toUpperCase())} 
+                        required 
+                        disabled={loading} 
+                        autoCapitalize="characters" 
+                      />
+                    </div>
+                    <p className="text-[0.72rem] text-slate-400 mt-1.5 pl-1">
+                      A single-use 6-digit OTP will be dispatched to the student's registered university email.
+                    </p>
                   </div>
+
                   <button 
                     type="submit" 
-                    className="btn btn-primary w-full py-2.5 text-xs shadow-xs" 
+                    className="btn btn-geu-yellow w-full py-3.5 text-sm font-black rounded-2xl shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed" 
                     disabled={loading || !selectedCheckpoint}
                   >
-                    {loading ? 'Sending OTP...' : 'Send Verification OTP'}
+                    {loading ? (
+                      <span>Sending OTP...</span>
+                    ) : (
+                      <>
+                        <span>Send Verification OTP</span>
+                        <Send size={15} />
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => { setUseOtp(false); readyForNext(); }}
+                    className="w-full py-2.5 text-xs font-bold text-slate-500 hover:text-slate-800 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <Camera size={14} />
+                    <span>Back to Camera Scanner</span>
                   </button>
                 </form>
               ) : (
-                <form onSubmit={handleVerifyOtp} className="space-y-4">
-                  <div className="bg-slate-50 rounded p-2.5 text-xs text-slate-600 text-center border border-slate-200">
-                    OTP sent for roll: <strong className="text-slate-900 font-mono">{roll}</strong>
+                <form onSubmit={handleVerifyOtp} className="space-y-5">
+                  <div className="bg-blue-50/70 rounded-2xl p-4 text-xs text-slate-700 text-center border border-blue-100">
+                    <p className="text-slate-500 mb-1">OTP sent for roll number:</p>
+                    <span className="text-base font-black text-[#1E2A78] font-mono tracking-wide">{roll}</span>
                   </div>
+
                   <div>
+                    <label className="block text-xs sm:text-sm font-bold text-slate-700 mb-2 text-center" htmlFor="otp-code">
+                      Enter 6-Digit Verification Code
+                    </label>
                     <input 
                       id="otp-code" 
-                      className="w-full bg-white border-2 border-slate-300 rounded px-4 py-3 text-slate-900 text-2xl tracking-[0.4em] text-center font-black focus:outline-none focus:border-[#1E2A78] transition-all placeholder-slate-300" 
+                      className="w-full bg-white border-2 border-slate-300 focus:border-[#1E2A78] rounded-2xl px-4 py-3.5 text-slate-900 text-2xl sm:text-3xl tracking-[0.4em] text-center font-black focus:outline-none focus:ring-4 focus:ring-blue-500/10 transition-all placeholder-slate-300" 
                       type="text" 
                       inputMode="numeric" 
                       pattern="[0-9]*" 
@@ -400,13 +498,26 @@ export default function VolunteerScanner({ role, onLogout }) {
                       disabled={loading} 
                     />
                   </div>
-                  <button type="submit" className="btn btn-success w-full py-2.5 text-xs shadow-xs" disabled={loading}>
-                    {loading ? 'Verifying...' : 'Verify & Admit Student'}
+
+                  <button 
+                    type="submit" 
+                    className="w-full py-3.5 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] rounded-2xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50" 
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <span>Verifying with Server...</span>
+                    ) : (
+                      <>
+                        <CheckCircle2 size={16} />
+                        <span>Verify &amp; Admit Student</span>
+                      </>
+                    )}
                   </button>
+
                   <button 
                     type="button" 
                     onClick={() => { setOtpSent(false); setOtp(''); }} 
-                    className="btn btn-secondary w-full py-2 text-xs"
+                    className="w-full py-2.5 text-xs font-bold text-slate-500 hover:text-slate-800 transition-colors flex items-center justify-center gap-1 cursor-pointer"
                   >
                     &larr; Re-enter Roll Number
                   </button>
@@ -416,52 +527,54 @@ export default function VolunteerScanner({ role, onLogout }) {
           </div>
         )}
 
-        {/* ── Result Modal Card (~2019 Institutional High Visibility) ─── */}
+        {/* ── Result Modal Card ─── */}
         {showResult && !useOtp && (
-          <div className="absolute inset-0 z-40 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-            <div className="w-full max-w-sm bg-white rounded-lg border-2 shadow-2xl p-6 text-center animate-pop-in overflow-hidden relative">
+          <div className="absolute inset-0 z-40 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+            <div className="w-full max-w-sm bg-white/98 backdrop-blur-2xl rounded-[32px] border border-white/80 shadow-[0_25px_70px_rgba(0,0,0,0.25)] p-7 sm:p-8 text-center animate-pop-in relative overflow-hidden">
               
               {scanResult ? (
                 <>
-                  <div className="absolute top-0 left-0 right-0 h-2 bg-emerald-600" />
-                  <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto mb-3 border-2 border-emerald-300">
+                  <div className="absolute top-0 left-0 right-0 h-2 bg-emerald-500" />
+                  <div className="w-16 h-16 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center mx-auto mb-4 shadow-xs">
                     <BadgeCheck size={36} />
                   </div>
-                  <span className="badge badge-green font-bold text-xs uppercase px-2.5 py-1 mb-2">
+                  <span className="badge badge-green font-bold text-xs uppercase px-3 py-1 rounded-full mb-3 inline-block">
                     Verified &amp; Admitted ✓
                   </span>
-                  <h2 className="text-xl font-black text-slate-900 mt-2 mb-1">{scanResult.name}</h2>
+                  <h2 className="text-xl font-black text-slate-900 mt-1 mb-1">{scanResult.name}</h2>
                   <p className="text-sm font-bold text-slate-600 font-mono mb-4">
-                    Roll: <span className="text-[#8B151B] bg-red-50 px-2 py-0.5 rounded border border-red-200">{scanResult.roll}</span>
+                    Roll: <span className="text-[#A31D24] bg-red-50 px-2.5 py-1 rounded-lg border border-red-200">{scanResult.roll}</span>
                   </p>
-                  <div className="p-2.5 rounded bg-slate-50 border border-slate-200 text-xs text-slate-600 mb-5">
-                    Checkpoint: <strong>{selectedCheckpoint?.name}</strong> • Entry Recorded
+                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600 mb-5">
+                    Checkpoint: <strong className="text-slate-900">{selectedCheckpoint?.name}</strong> • Entry Recorded
                   </div>
                   <button 
                     onClick={readyForNext} 
-                    className="btn btn-primary w-full py-3 text-sm shadow-sm"
+                    className="btn btn-geu-yellow w-full py-3.5 text-sm font-black rounded-2xl shadow-md cursor-pointer flex items-center justify-center gap-2"
                   >
-                    Scan Next Student &rarr;
+                    <span>Scan Next Student</span>
+                    <ArrowRight size={16} />
                   </button>
                 </>
               ) : (
                 <>
-                  <div className="absolute top-0 left-0 right-0 h-2 bg-red-600" />
-                  <div className="w-16 h-16 rounded-full bg-red-100 text-red-700 flex items-center justify-center mx-auto mb-3 border-2 border-red-300">
+                  <div className="absolute top-0 left-0 right-0 h-2 bg-rose-500" />
+                  <div className="w-16 h-16 rounded-2xl bg-rose-50 text-rose-600 border border-rose-200 flex items-center justify-center mx-auto mb-4 shadow-xs">
                     <XCircle size={36} />
                   </div>
-                  <span className="badge badge-red font-bold text-xs uppercase px-2.5 py-1 mb-2">
+                  <span className="badge badge-red font-bold text-xs uppercase px-3 py-1 rounded-full mb-3 inline-block">
                     Entry Denied / Warning
                   </span>
-                  <h2 className="text-lg font-bold text-slate-900 mt-2 mb-2">{errorMsg}</h2>
-                  <p className="text-xs text-slate-500 mb-5">
-                    Please verify student identity or direct them to the helpdesk.
+                  <h2 className="text-lg font-bold text-slate-900 mt-1 mb-2">{errorMsg}</h2>
+                  <p className="text-xs text-slate-500 mb-5 leading-relaxed">
+                    Please verify student identity or direct them to the university helpdesk.
                   </p>
                   <button 
                     onClick={readyForNext} 
-                    className="btn btn-secondary w-full py-3 text-sm border-slate-300"
+                    className="w-full py-3.5 text-sm font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-2xl transition-all cursor-pointer flex items-center justify-center gap-2"
                   >
-                    <RefreshCw size={14} className="mr-1.5"/> Dismiss &amp; Try Again
+                    <RefreshCw size={15} />
+                    <span>Dismiss &amp; Try Again</span>
                   </button>
                 </>
               )}
