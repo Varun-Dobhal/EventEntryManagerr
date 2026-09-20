@@ -21,14 +21,19 @@ jobs:
           script: |
             set -e
 
-            echo "🚀 Starting deployment..."
+            echo "========================================"
+            echo "🚀 EventEntryManager Deployment"
+            echo "========================================"
 
             cd ~/EventEntryManagerr
 
-            echo "📥 Pulling latest code..."
-            git pull origin main
+            echo "📥 Fetching latest code..."
+            git fetch origin main
 
-            echo "🔧 Installing backend dependencies..."
+            echo "🔄 Syncing server with main..."
+            git reset --hard origin/main
+
+            echo "📦 Installing backend dependencies..."
             cd backend
             npm ci
 
@@ -36,21 +41,31 @@ jobs:
             npx prisma generate
 
             echo "🔄 Restarting backend..."
-            pm2 restart evententry-backend
+            pm2 restart evententry-backend --update-env
 
-            echo "🎨 Building frontend..."
+            echo "🎨 Installing frontend dependencies..."
             cd ../frontend
             npm ci
+
+            echo "🏗️ Building frontend..."
             npm run build
 
             echo "📦 Deploying frontend..."
             sudo rm -rf /var/www/evententry/*
-            sudo cp -r dist/* /var/www/evententry/
+            sudo cp -r dist/. /var/www/evententry/
+
+            echo "🔍 Testing Nginx configuration..."
+            sudo nginx -t
 
             echo "🔄 Reloading Nginx..."
-            sudo nginx -t
             sudo systemctl reload nginx
 
-            echo "✅ Deployment completed!"
+            echo "🏥 Checking backend..."
+            curl -f http://127.0.0.1:5001/api/health
+
+            echo ""
+            echo "========================================"
+            echo "✅ DEPLOYMENT SUCCESSFUL"
+            echo "========================================"
 
             pm2 status
