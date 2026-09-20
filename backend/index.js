@@ -22,7 +22,7 @@ app.disable("x-powered-by");
 /* 
    CORS FIX
  */
-const allowedOrigins = ["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:5174", "http://localhost:5175"];
+const allowedOrigins = ["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:5174", "http://localhost:5175", "http://3.109.178.209"];
 
 const corsOptions = {
   origin(origin, callback) {
@@ -146,11 +146,10 @@ app.get("/verify/:token", async (req, res) => {
           <p style="margin:2px 0 0;color:#6b7280;font-size:14px;">
             Roll No: ${attendee.roll}
           </p>
-          ${
-            isAlreadyUsed
-              ? '<p style="margin:8px 0 0;color:#f97316;font-size:13px;font-weight:600;">⚠️ Status: Already Checked In</p>'
-              : '<p style="margin:8px 0 0;color:#10b981;font-size:13px;font-weight:600;">✅ Status: Valid Ticket</p>'
-          }
+          ${isAlreadyUsed
+        ? '<p style="margin:8px 0 0;color:#f97316;font-size:13px;font-weight:600;">⚠️ Status: Already Checked In</p>'
+        : '<p style="margin:8px 0 0;color:#10b981;font-size:13px;font-weight:600;">✅ Status: Valid Ticket</p>'
+      }
         </div>
 
         <p style="color:#9ca3af;font-size:13px;">
