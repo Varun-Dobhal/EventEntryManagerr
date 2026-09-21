@@ -19,25 +19,43 @@ exports.createTemplate = async (req, res) => {
   try {
     const { eventId, name, subject, htmlBody } = req.body;
     if (!eventId) return res.status(400).json({ error: "eventId is required" });
+    const cleanName = (name || "").trim() || "Untitled Pass Template";
+    const cleanSubject = (subject || "").trim() || "Official Event Entry Pass - Graphic Era";
+    const cleanHtmlBody = htmlBody || "";
+
     const template = await prisma.emailTemplate.create({
-      data: { eventId: Number(eventId), name, subject, htmlBody }
+      data: {
+        eventId: Number(eventId),
+        name: cleanName,
+        subject: cleanSubject,
+        htmlBody: cleanHtmlBody
+      }
     });
     res.status(201).json(template);
   } catch (error) {
-    res.status(500).json({ error: "Failed to create template" });
+    console.error("Failed to create template:", error);
+    res.status(500).json({ error: error.message || "Failed to create template" });
   }
 };
 
 exports.updateTemplate = async (req, res) => {
   try {
     const { name, subject, htmlBody } = req.body;
+    const cleanName = name !== undefined ? ((name || "").trim() || "Untitled Pass Template") : undefined;
+    const cleanSubject = subject !== undefined ? ((subject || "").trim() || "Official Event Entry Pass - Graphic Era") : undefined;
+
     const template = await prisma.emailTemplate.update({
       where: { id: Number(req.params.id) },
-      data: { name, subject, htmlBody }
+      data: {
+        ...(cleanName !== undefined ? { name: cleanName } : {}),
+        ...(cleanSubject !== undefined ? { subject: cleanSubject } : {}),
+        ...(htmlBody !== undefined ? { htmlBody } : {})
+      }
     });
     res.json(template);
   } catch (error) {
-    res.status(500).json({ error: "Failed to update template" });
+    console.error("Failed to update template:", error);
+    res.status(500).json({ error: error.message || "Failed to update template" });
   }
 };
 

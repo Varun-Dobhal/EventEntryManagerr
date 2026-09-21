@@ -16,7 +16,7 @@ const compressPosterImage = (file) => {
         const canvas = document.createElement("canvas");
         let width = img.width;
         let height = img.height;
-        const maxWidth = 700;
+        const maxWidth = 640;
         if (width > maxWidth) {
           height = Math.round((height * maxWidth) / width);
           width = maxWidth;
@@ -25,7 +25,7 @@ const compressPosterImage = (file) => {
         canvas.height = height;
         const ctx = canvas.getContext("2d");
         ctx.drawImage(img, 0, 0, width, height);
-        const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.78);
         resolve(dataUrl);
       };
       img.onerror = reject;
@@ -254,18 +254,31 @@ export default function CampaignManagement({ activeEventId, onRedirectCleanup })
 
   const saveTemplate = async (e) => {
     e.preventDefault();
+    if (!activeEventId) {
+      toast({ type: "error", message: "Please select an active event first from the top header." });
+      return;
+    }
+    if (!templateForm?.name?.trim()) {
+      toast({ type: "error", message: "Template Name is required." });
+      return;
+    }
+    if (!templateForm?.subject?.trim()) {
+      toast({ type: "error", message: "Email Subject Line is required." });
+      return;
+    }
+
     setLoading(true);
     try {
       let finalHtmlBody = "";
       if (templateForm.isCodeMode) {
-        finalHtmlBody = templateForm.htmlBody;
+        finalHtmlBody = templateForm.htmlBody || "";
       } else {
         finalHtmlBody = compilePassTemplateHtml(templateForm);
       }
 
       const payload = {
-        name: templateForm.name,
-        subject: templateForm.subject,
+        name: templateForm.name.trim(),
+        subject: templateForm.subject.trim(),
         htmlBody: finalHtmlBody,
       };
 
@@ -273,13 +286,13 @@ export default function CampaignManagement({ activeEventId, onRedirectCleanup })
         await api.put(`/campaigns/templates/${templateForm.id}`, payload);
         toast({ type: "success", message: "Pass template updated successfully." });
       } else {
-        await api.post(`/campaigns/templates`, { ...payload, eventId: activeEventId });
+        await api.post(`/campaigns/templates`, { ...payload, eventId: Number(activeEventId) });
         toast({ type: "success", message: "Pass template created successfully." });
       }
       setTemplateForm(null);
       fetchTemplates();
     } catch (err) {
-      toast({ type: "error", message: "Failed to save template." });
+      toast({ type: "error", message: err.response?.data?.error || "Failed to save template." });
     } finally {
       setLoading(false);
     }
