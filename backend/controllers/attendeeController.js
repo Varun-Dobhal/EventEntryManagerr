@@ -514,6 +514,7 @@ exports.startCampaign = async (req, res) => {
       delayMs = defaultSettings.delayMs, 
       providerName = "RESEND", 
       eventId,
+      datasetId,
       target = "pending"
     } = req.body;
     if (!eventId) return res.status(400).json({ error: "eventId is required" });
@@ -530,6 +531,10 @@ exports.startCampaign = async (req, res) => {
       eventId: Number(eventId), 
       email: { not: null, not: "" } 
     };
+
+    if (datasetId && datasetId !== "all") {
+      attendeeQuery.datasetId = Number(datasetId);
+    }
 
     // By default, target only attendees who haven't already received their pass
     if (target !== "all") {

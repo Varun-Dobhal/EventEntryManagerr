@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import api from "../utils/api";
 import { useToast } from "../context/ToastContext";
-import { PlayCircle, Plus, RefreshCw, X, AlertCircle, Download, Edit2, Trash2, Send, FileCode2, Inbox, MailWarning, LayoutTemplate, Loader2, Image, Upload, Eye, QrCode, Sparkles } from "lucide-react";
+import { PlayCircle, Plus, RefreshCw, X, AlertCircle, CheckCircle, Download, Edit2, Trash2, Send, FileCode2, Inbox, MailWarning, LayoutTemplate, Loader2, Image, Upload, Eye, QrCode, Sparkles } from "lucide-react";
 import { categorizeEmailError } from "../utils/errorCategorization";
 import CampaignConsole from "./CampaignConsole";
 import DeleteModal from "./DeleteModal";
@@ -184,6 +184,8 @@ export default function CampaignManagement({ activeEventId, onRedirectCleanup })
   const [activeTab, setActiveTab] = useState("monitor");
   const [templates, setTemplates] = useState([]);
   const [campaigns, setCampaigns] = useState([]);
+  const [datasets, setDatasets] = useState([]);
+  const [attendeeStats, setAttendeeStats] = useState({ total: 0, pending: 0, sent: 0 });
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
@@ -208,10 +210,27 @@ export default function CampaignManagement({ activeEventId, onRedirectCleanup })
     }
   };
 
+  const fetchDatasetsAndStats = async () => {
+    try {
+      const [dRes, aRes] = await Promise.all([
+        api.get(`/attendees/datasets?eventId=${activeEventId}`),
+        api.get(`/attendees?eventId=${activeEventId}`)
+      ]);
+      setDatasets(dRes.data || []);
+      const atts = aRes.data || [];
+      const sent = atts.filter(a => a.emailSent).length;
+      const pending = atts.filter(a => !a.emailSent && a.email).length;
+      setAttendeeStats({ total: atts.length, pending, sent });
+    } catch (err) {
+      console.error("Failed to fetch datasets or attendee stats", err);
+    }
+  };
+
   useEffect(() => {
     if (activeEventId) {
       fetchTemplates();
       fetchCampaigns();
+      fetchDatasetsAndStats();
     }
   }, [activeEventId]);
 
@@ -286,6 +305,8 @@ export default function CampaignManagement({ activeEventId, onRedirectCleanup })
       const scheduledIso = campaignForm?.scheduledAt ? new Date(campaignForm.scheduledAt).toISOString() : null;
       await api.post(`/campaigns/start`, { 
         ...campaignForm, 
+        target: campaignForm?.target || "pending",
+        datasetId: campaignForm?.target === "dataset" ? (campaignForm?.datasetId || undefined) : undefined,
         scheduledAt: scheduledIso,
         eventId: activeEventId 
       });
@@ -293,6 +314,7 @@ export default function CampaignManagement({ activeEventId, onRedirectCleanup })
       setCampaignForm(null);
       setActiveTab("monitor");
       fetchCampaigns();
+      fetchDatasetsAndStats();
     } catch (err) {
       toast({ type: "error", message: err.response?.data?.error || "Failed to start campaign." });
     } finally {
@@ -377,7 +399,18 @@ export default function CampaignManagement({ activeEventId, onRedirectCleanup })
           ].map(tab => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => {
+                if (tab.id === 'builder') {
+                  setCampaignForm(prev => prev || {
+                    name: `Pass Dispatch - Batch ${campaigns.length + 1}`,
+                    target: "pending",
+                    datasetId: "",
+                    templateId: "",
+                    scheduledAt: "",
+                  });
+                }
+                setActiveTab(tab.id);
+              }}
               className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                 activeTab === tab.id 
                   ? 'bg-[#2563EB] text-white shadow-xs' 
@@ -795,10 +828,15 @@ export default function CampaignManagement({ activeEventId, onRedirectCleanup })
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="input-label">Recipient Filter <span className="text-red-600">*</span></label>
-                  <select className="input" value={campaignForm?.target || "all"} onChange={e => setCampaignForm({...campaignForm, target: e.target.value})}>
-                    <option value="all">All Registered Students</option>
-                    <option value="pending">Only Students Pending Pass</option>
+                  <label className="input-label">Recipient Scope Filter <span className="text-red-600">*</span></label>
+                  <select 
+                    className="input font-medium" 
+                    value={campaignForm?.target || "pending"} 
+                    onChange={e => setCampaignForm({...campaignForm, target: e.target.value})}
+                  >
+                    <option value="pending">Only Students Pending Pass (Unsent Only) — Recommended</option>
+                    <option value="dataset">Target Specific Uploaded Excel Batch</option>
+                    <option value="all">⚠️ Force Resend to ALL Students (Including already sent)</option>
                   </select>
                 </div>
 
@@ -809,6 +847,57 @@ export default function CampaignManagement({ activeEventId, onRedirectCleanup })
                     {templates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                   </select>
                 </div>
+              </div>
+
+              {campaignForm?.target === "dataset" && (
+                <div>
+                  <label className="input-label">Select Uploaded Excel Spreadsheet <span className="text-red-600">*</span></label>
+                  <select 
+                    className="input font-medium" 
+                    value={campaignForm?.datasetId || ""} 
+                    onChange={e => setCampaignForm({...campaignForm, datasetId: e.target.value})}
+                    required
+                  >
+                    <option value="">-- Choose Excel Upload File --</option>
+                    {datasets.map((d, idx) => (
+                      <option key={d.id} value={d.id}>
+                        {d.eventName || `Excel Upload #${idx + 1}`} ({d.validRecords || d.totalRecords} students — {new Date(d.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}, {new Date(d.createdAt).toLocaleDateString()})
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-[0.68rem] text-slate-500 mt-1">
+                    Emails will strictly only be sent to students belonging to this specific uploaded Excel file.
+                  </p>
+                </div>
+              )}
+
+              {/* Warning box if "all" is selected */}
+              {campaignForm?.target === "all" && (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-xs flex items-start gap-2">
+                  <AlertCircle size={15} className="text-amber-600 shrink-0 mt-0.5" />
+                  <span>
+                    <strong>Duplicate Warning:</strong> This will send emails to <strong>all {attendeeStats.total} registered students</strong>, including the {attendeeStats.sent} students who have already received their pass in previous dispatches!
+                  </span>
+                </div>
+              )}
+
+              {/* Live Preview Info Strip */}
+              <div className="p-3 rounded-xl bg-blue-50/70 border border-blue-100 flex items-center justify-between text-xs text-blue-900">
+                <span className="flex items-center gap-1.5 font-medium">
+                  <CheckCircle size={14} className="text-[#2563EB]" />
+                  <span>
+                    {campaignForm?.target === "all"
+                      ? `All ${attendeeStats.total} students will receive passes`
+                      : campaignForm?.target === "dataset" && campaignForm?.datasetId
+                      ? `Only students in the selected Excel upload will receive passes`
+                      : `${attendeeStats.pending} unsent / newly uploaded students will receive passes`}
+                  </span>
+                </span>
+                {campaignForm?.target !== "all" && attendeeStats.sent > 0 && (
+                  <span className="text-[0.68rem] bg-white text-emerald-700 font-bold px-2 py-0.5 rounded-md border border-emerald-200">
+                    {attendeeStats.sent} previously sent (skipped)
+                  </span>
+                )}
               </div>
 
               <div>

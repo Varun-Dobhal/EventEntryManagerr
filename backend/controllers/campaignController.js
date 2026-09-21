@@ -86,11 +86,12 @@ exports.startCampaign = async (req, res) => {
       eventId, 
       name, 
       templateId, 
+      datasetId,
       scheduledAt, 
       batchSize = defaultSettings.batchSize, 
       delayMs = defaultSettings.delayMs, 
       providerName = "RESEND",
-      target = "all", // "all" or "pending"
+      target = "pending", // Default to "pending" so already sent students are never spammed!
     } = req.body;
 
     if (!eventId) return res.status(400).json({ error: "eventId is required" });
@@ -99,8 +100,19 @@ exports.startCampaign = async (req, res) => {
     const parsedScheduledDate = scheduledAt ? new Date(scheduledAt) : null;
     const isScheduled = parsedScheduledDate && !isNaN(parsedScheduledDate.getTime()) && (parsedScheduledDate.getTime() - Date.now()) > 60000;
 
-    const attendeeQuery = { eventId: Number(eventId), email: { not: null, not: "" } };
-    if (target === "pending") {
+    const attendeeQuery = { 
+      eventId: Number(eventId), 
+      email: { not: null, not: "" } 
+    };
+
+    // Filter by specific Excel upload batch / dataset if provided
+    if (datasetId && datasetId !== "all") {
+      attendeeQuery.datasetId = Number(datasetId);
+    }
+
+    // By default, exclude students who have already received their pass (or have an active delivery job)
+    // Only if target is explicitly "all", allow re-sending to everyone
+    if (target !== "all") {
       attendeeQuery.emailJobs = {
         none: { status: { in: ["SENT", "PROCESSING", "PENDING"] } }
       };
@@ -109,7 +121,11 @@ exports.startCampaign = async (req, res) => {
     const attendees = await prisma.attendee.findMany({ where: attendeeQuery });
 
     if (attendees.length === 0) {
-      return res.status(400).json({ error: "No target attendees found." });
+      return res.status(400).json({ 
+        error: target === "all"
+          ? "No attendees with valid email addresses found."
+          : "No pending attendees found. All selected students have already received their QR pass."
+      });
     }
 
     const campaign = await prisma.$transaction(async (tx) => {
