@@ -94,7 +94,12 @@ const processQueue = async () => {
 
     for (const job of jobs) {
       try {
-        const qrCodeDataUrl = await QRCode.toDataURL(job.attendee.qrLink);
+        const qrCodeDataUrl = await QRCode.toDataURL(job.attendee.qrLink, {
+          margin: 3,
+          width: 380,
+          errorCorrectionLevel: "M",
+          color: { dark: "#000000", light: "#FFFFFF" },
+        });
         const result = await sendQrEmail(job.attendee, activeCampaign.event, qrCodeDataUrl, "", activeCampaign.template, job.trackingId);
         
         if (result.success) {

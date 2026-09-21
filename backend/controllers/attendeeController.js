@@ -409,8 +409,10 @@ exports.uploadExcel = async (req, res) => {
         name: `qrs/${attendee.roll}.png`,
         buffer: await QRCode.toBuffer(attendee.qrLink, {
           type: "png",
-          margin: 2,
-          width: 300,
+          margin: 3,
+          width: 380,
+          errorCorrectionLevel: "M",
+          color: { dark: "#000000", light: "#FFFFFF" },
         }),
       })),
     );
@@ -449,7 +451,12 @@ exports.sendManualEmail = async (req, res) => {
       return res.status(400).json({ error: "Attendee has no email address." });
     }
 
-    const qrCodeDataUrl = await QRCode.toDataURL(attendee.qrLink);
+    const qrCodeDataUrl = await QRCode.toDataURL(attendee.qrLink, {
+      margin: 3,
+      width: 380,
+      errorCorrectionLevel: "M",
+      color: { dark: "#000000", light: "#FFFFFF" },
+    });
     await sendQrEmail(attendee, attendee.event, qrCodeDataUrl, message);
 
     return res.status(200).json({

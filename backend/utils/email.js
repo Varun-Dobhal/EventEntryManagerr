@@ -148,12 +148,16 @@ const sendQrEmail = async (attendee, event, qrCodeDataUrl, customMessage = "", t
 
     const { provider, instance } = await getProvider();
 
-    // 1. Generate high-resolution QR PNG buffer for reliable inline CID email embedding
+    // 1. Generate high-resolution, high-contrast QR PNG buffer optimized for fast camera scans
     const qrBuffer = await QRCode.toBuffer(attendee.qrLink, {
       type: "png",
-      margin: 2,
-      width: 320,
-      errorCorrectionLevel: "H",
+      margin: 3,
+      width: 380,
+      errorCorrectionLevel: "M",
+      color: {
+        dark: "#000000",
+        light: "#FFFFFF",
+      },
     });
     const qrBase64 = `data:image/png;base64,${qrBuffer.toString("base64")}`;
 

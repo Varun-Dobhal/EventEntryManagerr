@@ -56,10 +56,31 @@ export default function VolunteerScanner({ role, onLogout }) {
   const isScanRef  = useRef(false);
   const loadingRef = useRef(false);
   const timerRef   = useRef(null);
+  const barcodeDetectorRef = useRef(null);
+  const lastScanTimeRef = useRef(0);
 
   const { toast } = useToast();
 
   useEffect(() => { loadingRef.current = loading; }, [loading]);
+
+  // Initialize Native Hardware-Accelerated BarcodeDetector if supported by browser/OS
+  useEffect(() => {
+    if (typeof window !== "undefined" && "BarcodeDetector" in window) {
+      try {
+        window.BarcodeDetector.getSupportedFormats()
+          .then((formats) => {
+            if (formats && formats.includes("qr_code")) {
+              barcodeDetectorRef.current = new window.BarcodeDetector({
+                formats: ["qr_code"],
+              });
+            }
+          })
+          .catch(() => {});
+      } catch (e) {
+        barcodeDetectorRef.current = null;
+      }
+    }
+  }, []);
 
   useEffect(() => {
     fetchActiveEvent();
@@ -107,15 +128,27 @@ export default function VolunteerScanner({ role, onLogout }) {
       let stream = null;
       try {
         stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: 'environment' } },
-          audio: false
+          video: {
+            facingMode: { ideal: 'environment' },
+            width: { ideal: 1280, max: 1920 },
+            height: { ideal: 720, max: 1080 },
+          },
+          audio: false,
         });
       } catch (err1) {
-        // Fallback to any available webcam (e.g. laptop front camera)
+        // Fallback to any available camera (e.g. front/laptop webcam)
         stream = await navigator.mediaDevices.getUserMedia({
           video: true,
-          audio: false
+          audio: false,
         });
+      }
+
+      // Apply continuous auto-focus and auto-exposure to phone camera sensor if available
+      const track = stream.getVideoTracks()?.[0];
+      if (track && track.applyConstraints) {
+        track.applyConstraints({
+          advanced: [{ focusMode: "continuous" }, { exposureMode: "continuous" }],
+        }).catch(() => {});
       }
 
       streamRef.current = stream;
@@ -145,9 +178,23 @@ export default function VolunteerScanner({ role, onLogout }) {
     const reader = new FileReader();
     reader.onload = (event) => {
       const img = new window.Image();
-      img.onload = () => {
+      img.onload = async () => {
+        // 1. Native Hardware BarcodeDetector if available
+        if (barcodeDetectorRef.current) {
+          try {
+            const barcodes = await barcodeDetectorRef.current.detect(img);
+            if (barcodes && barcodes.length > 0 && barcodes[0].rawValue) {
+              setLoading(false);
+              isScanRef.current = true;
+              handleVerifyQR(barcodes[0].rawValue);
+              return;
+            }
+          } catch (err) {}
+        }
+
+        // 2. jsQR downscaled to optimal 700px for instant analysis
         const canvas = document.createElement("canvas");
-        const maxDim = 1200;
+        const maxDim = 720;
         let w = img.width;
         let h = img.height;
         if (w > maxDim || h > maxDim) {
@@ -165,7 +212,7 @@ export default function VolunteerScanner({ role, onLogout }) {
         ctx.drawImage(img, 0, 0, w, h);
         const imgData = ctx.getImageData(0, 0, w, h);
         const code = jsQR(imgData.data, imgData.width, imgData.height, {
-          inversionAttempts: "dontInvert",
+          inversionAttempts: "attemptBoth",
         });
 
         setLoading(false);
@@ -199,23 +246,67 @@ export default function VolunteerScanner({ role, onLogout }) {
 
   const onVideoReady = () => { cancelAnimationFrame(rafRef.current); rafRef.current = requestAnimationFrame(scanFrame); };
 
-  const scanFrame = () => {
-    const v = videoRef.current, c = canvasRef.current;
-    if (!v || !c || v.readyState < v.HAVE_ENOUGH_DATA) { rafRef.current = requestAnimationFrame(scanFrame); return; }
-    const scale = Math.min(1, 600 / (v.videoWidth || 640));
-    c.width = (v.videoWidth || 640) * scale; 
-    c.height = (v.videoHeight || 480) * scale;
-    
-    const ctx = c.getContext('2d', { willReadFrequently: true });
-    ctx.drawImage(v, 0, 0, c.width, c.height);
-    const imgData = ctx.getImageData(0, 0, c.width, c.height);
-    
-    const code = jsQR(imgData.data, imgData.width, imgData.height, { inversionAttempts: 'dontInvert' });
-    if (code?.data && !isScanRef.current && !loadingRef.current) { 
-      isScanRef.current = true; 
-      handleVerifyQR(code.data); 
-      return; 
+  const scanFrame = async () => {
+    const v = videoRef.current;
+    if (!v || v.readyState < v.HAVE_ENOUGH_DATA) {
+      rafRef.current = requestAnimationFrame(scanFrame);
+      return;
     }
+
+    if (isScanRef.current || loadingRef.current) {
+      rafRef.current = requestAnimationFrame(scanFrame);
+      return;
+    }
+
+    // 1. Hardware-Accelerated Native BarcodeDetector (sub-millisecond decode)
+    if (barcodeDetectorRef.current) {
+      try {
+        const barcodes = await barcodeDetectorRef.current.detect(v);
+        if (barcodes && barcodes.length > 0 && barcodes[0].rawValue) {
+          isScanRef.current = true;
+          handleVerifyQR(barcodes[0].rawValue);
+          return;
+        }
+      } catch (err) {
+        // Fallback to jsQR
+      }
+    }
+
+    // 2. High-Speed jsQR Fallback (throttled to ~25 FPS to keep phone CPU cool and smooth)
+    const now = performance.now();
+    if (now - lastScanTimeRef.current >= 38) {
+      lastScanTimeRef.current = now;
+      const c = canvasRef.current;
+      if (c && v.videoWidth && v.videoHeight) {
+        const vw = v.videoWidth;
+        const vh = v.videoHeight;
+
+        // Crop centered viewfinder region (72% of minimum dimension)
+        const cropSize = Math.round(Math.min(vw, vh) * 0.72);
+        const sx = Math.round((vw - cropSize) / 2);
+        const sy = Math.round((vh - cropSize) / 2);
+
+        // Downsample cropped region to 340x340 for instantaneous jsQR processing
+        const targetDim = 340;
+        c.width = targetDim;
+        c.height = targetDim;
+
+        const ctx = c.getContext('2d', { willReadFrequently: true });
+        ctx.drawImage(v, sx, sy, cropSize, cropSize, 0, 0, targetDim, targetDim);
+        const imgData = ctx.getImageData(0, 0, targetDim, targetDim);
+
+        const code = jsQR(imgData.data, imgData.width, imgData.height, {
+          inversionAttempts: 'attemptBoth',
+        });
+
+        if (code?.data && !isScanRef.current && !loadingRef.current) {
+          isScanRef.current = true;
+          handleVerifyQR(code.data);
+          return;
+        }
+      }
+    }
+
     rafRef.current = requestAnimationFrame(scanFrame);
   };
 
