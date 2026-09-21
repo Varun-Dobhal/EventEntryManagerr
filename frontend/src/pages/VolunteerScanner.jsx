@@ -418,29 +418,32 @@ export default function VolunteerScanner({ role, onLogout }) {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <div className="text-right hidden sm:block text-[0.7rem] text-slate-300">
-              <span>Admitted: <strong className="text-white text-xs">{scanCount}</strong></span>
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            <div className="text-right text-[0.65rem] sm:text-[0.7rem] text-slate-300 flex items-center gap-1">
+              <span className="hidden sm:inline">Admitted:</span>
+              <strong className="text-white text-xs bg-white/15 px-1.5 py-0.5 rounded font-mono font-black" title="Admitted count">
+                {scanCount}
+              </strong>
             </div>
 
             <button 
               onClick={() => { setUseOtp(v => !v); readyForNext(); }} 
-              className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold transition-all ${
+              className={`flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
                 useOtp 
                   ? 'bg-[#FFB800] text-slate-950 font-black shadow-xs' 
                   : 'bg-white/10 text-white border border-white/20 hover:bg-white/20'
               }`}
             >
-              {useOtp ? <><ScanLine size={13}/> Scan QR</> : <><Lock size={13}/> Roll OTP</>}
+              {useOtp ? <><ScanLine size={13}/> <span className="hidden xs:inline">Scan QR</span><span className="xs:hidden">QR</span></> : <><Lock size={13}/> <span className="hidden xs:inline">Roll OTP</span><span className="xs:hidden">OTP</span></>}
             </button>
 
             {onLogout && (
               <button 
                 onClick={onLogout} 
-                className="w-8 h-8 rounded bg-white/10 border border-white/20 text-white hover:bg-red-600 transition-all flex items-center justify-center"
+                className="w-7 h-7 sm:w-8 sm:h-8 rounded bg-white/10 border border-white/20 text-white hover:bg-red-600 transition-all flex items-center justify-center cursor-pointer"
                 title="Sign Out"
               >
-                <LogOut size={14}/>
+                <LogOut size={13}/>
               </button>
             )}
           </div>
@@ -640,27 +643,27 @@ export default function VolunteerScanner({ role, onLogout }) {
         {/* ── Manual OTP Fallback Panel ────────────────────────────────── */}
         {useOtp && (
           <div 
-            className="absolute inset-0 z-30 bg-slate-50/75 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6 overflow-y-auto"
+            className="absolute inset-0 z-30 bg-slate-50/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 overflow-y-auto"
             style={{ minHeight: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
             <AmbientBackground />
             
-            <div className="w-full max-w-md bg-white/95 backdrop-blur-2xl rounded-[32px] border border-white/80 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.09)] p-8 sm:p-10 relative z-10 animate-slide-up my-auto">
+            <div className="w-full max-w-md bg-white/98 backdrop-blur-2xl rounded-[28px] sm:rounded-[32px] border border-white/80 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.09)] p-5 sm:p-8 md:p-10 relative z-10 animate-slide-up my-auto max-h-[92vh] overflow-y-auto">
               
               {/* Header with Icon, Title & Checkpoint */}
-              <div className="flex flex-col items-center justify-center text-center pb-6 mb-6 border-b border-slate-100 w-full">
+              <div className="flex flex-col items-center justify-center text-center pb-4 mb-4 sm:pb-6 sm:mb-6 border-b border-slate-100 w-full">
                 <div 
-                  className="w-16 h-16 rounded-2xl bg-blue-50 text-[#1E2A78] border border-blue-100/90 flex items-center justify-center mb-3.5 shadow-xs"
+                  className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-blue-50 text-[#1E2A78] border border-blue-100/90 flex items-center justify-center mb-2.5 sm:mb-3.5 shadow-xs"
                   style={{ margin: '0 auto' }}
                 >
-                  <KeyRound size={28} />
+                  <KeyRound size={24} />
                 </div>
                 
-                <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                <h2 className="text-lg sm:text-2xl font-black text-slate-900 tracking-tight">
                   Manual Roll &amp; OTP
                 </h2>
                 
-                <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
+                <p className="text-xs sm:text-sm text-slate-500 font-medium mt-0.5 sm:mt-1">
                   Verify &amp; admit student without camera QR pass
                 </p>
 

@@ -101,7 +101,7 @@ function App() {
                     ) : role ? (
                       <Navigate to="/volunteer" replace />
                     ) : (
-                      <Navigate to="/login?portal=admin" replace />
+                      <Navigate to="/login" replace />
                     )
                   }
                 />
@@ -113,11 +113,12 @@ function App() {
                     ) : role === "ADMIN" ? (
                       <Navigate to="/admin" replace />
                     ) : (
-                      <Navigate to="/login?portal=volunteer" replace />
+                      <Navigate to="/login" replace />
                     )
                   }
                 />
                 <Route path="/verify/:token" element={<ExternalVerify />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
               </div>
             )}

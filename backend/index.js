@@ -22,7 +22,14 @@ app.disable("x-powered-by");
 /* 
    CORS FIX
  */
-const allowedOrigins = ["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:5174", "http://localhost:5175", "https://3.109.178.209"];
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+  "http://localhost:5174",
+  "http://localhost:5175",
+  "http://3.109.178.209",
+  "https://3.109.178.209"
+];
 
 const corsOptions = {
   origin(origin, callback) {

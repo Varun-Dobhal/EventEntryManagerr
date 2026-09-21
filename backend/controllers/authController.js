@@ -114,26 +114,6 @@ exports.login = async (req, res) => {
       });
     }
 
-    // Role-based portal validation
-    const { portal } = req.body;
-    if (portal === "admin" && user.role !== "ADMIN") {
-      return res.status(403).json({
-        error: "Access Denied: Volunteer accounts cannot sign in through the Admin Portal. Please use the Volunteer Scanner.",
-      });
-    }
-
-    if (portal === "volunteer" && user.role === "ADMIN") {
-      return res.status(403).json({
-        error: "Access Denied: Administrator accounts cannot sign in through the Volunteer Scanner. Please use the Admin Portal.",
-      });
-    }
-
-    if (portal === "volunteer" && !["ENTRY_VOLUNTEER", "FOOD_VOLUNTEER"].includes(user.role)) {
-      return res.status(403).json({
-        error: "Access Denied: Only authorized volunteer accounts can sign in here.",
-      });
-    }
-
     const token = signToken(user.id, user.role);
 
     return res.status(200).json({

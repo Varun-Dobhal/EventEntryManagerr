@@ -544,51 +544,51 @@ export default function AdminDashboard({ onLogout }) {
       
       {/* ── Top University Masthead ───────────────────────────────────── */}
       <header className="w-full bg-white border-b border-slate-200 shadow-2xs">
-        <div className="w-full px-6 sm:px-10 lg:px-12 py-3.5 flex items-center justify-between gap-4">
+        <div className="w-full px-3 sm:px-6 lg:px-12 py-2.5 sm:py-3.5 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2.5 sm:gap-4">
           
           {/* Left: Official University Logo & Event Selector */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2.5 sm:gap-4 flex-wrap">
             <div 
-              className="flex items-center gap-3 cursor-pointer hover:opacity-95 transition-opacity" 
+              className="flex items-center gap-2 sm:gap-3 cursor-pointer hover:opacity-95 transition-opacity" 
               onClick={() => setActiveTab("dashboard")}
             >
               <img 
                 src={logoImg} 
                 alt="Graphic Era Crest" 
-                className="w-11 h-11 object-contain shrink-0" 
+                className="w-9 h-9 sm:w-11 sm:h-11 object-contain shrink-0" 
               />
               <div className="flex flex-col justify-center">
-                <span className="font-serif text-xl font-bold text-[#A31D24] tracking-tight leading-none">
+                <span className="font-serif text-lg sm:text-xl font-bold text-[#A31D24] tracking-tight leading-none">
                   Graphic Era
                 </span>
-                <span className="font-serif text-[0.68rem] text-slate-800 leading-tight mt-0.5">
+                <span className="font-serif text-[0.62rem] sm:text-[0.68rem] text-slate-800 leading-tight mt-0.5">
                   deemed to be <strong className="font-serif">University</strong>
                 </span>
-                <span className="text-[0.55rem] font-bold tracking-[0.25em] text-[#A31D24] uppercase leading-none mt-0.5">
+                <span className="text-[0.5rem] sm:text-[0.55rem] font-bold tracking-[0.22em] text-[#A31D24] uppercase leading-none mt-0.5">
                   DEHRADUN
                 </span>
               </div>
             </div>
 
-            <div className="h-8 w-px bg-slate-200 hidden md:block" />
+            <div className="h-7 w-px bg-slate-200 hidden md:block" />
 
             {/* Active Event Dropdown */}
             {events.length === 0 ? (
-              <div className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 rounded-xl px-2.5 py-1 text-xs shadow-2xs">
-                <span className="text-amber-800 font-bold text-[0.7rem]">No Events</span>
+              <div className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 rounded-xl px-2 py-1 text-xs shadow-2xs">
+                <span className="text-amber-800 font-bold text-[0.68rem]">No Events</span>
                 <button
                   onClick={() => setActiveTab("events")}
-                  className="btn btn-xs bg-[#FFB800] hover:bg-[#E5A600] text-black font-black px-2.5 py-1 rounded-lg text-[0.68rem] cursor-pointer flex items-center gap-1 shadow-2xs"
+                  className="btn btn-xs bg-[#FFB800] hover:bg-[#E5A600] text-black font-black px-2 py-0.5 rounded-lg text-[0.65rem] cursor-pointer flex items-center gap-1 shadow-2xs"
                 >
-                  <Plus size={12} />
-                  <span>+ Create Event</span>
+                  <Plus size={11} />
+                  <span>Create</span>
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1 shadow-2xs">
-                <span className="text-[0.72rem] font-bold text-slate-500">Active Event:</span>
+              <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2 sm:px-2.5 py-1 shadow-2xs max-w-full">
+                <span className="text-[0.68rem] sm:text-[0.72rem] font-bold text-slate-500 shrink-0">Event:</span>
                 <select 
-                  className="bg-transparent text-xs font-bold text-[#1E2A78] focus:outline-none cursor-pointer pr-1 max-w-[160px] truncate"
+                  className="bg-transparent text-xs font-bold text-[#1E2A78] focus:outline-none cursor-pointer pr-1 max-w-[120px] sm:max-w-[160px] truncate"
                   value={activeEventId}
                   onChange={(e) => setActiveEventId(e.target.value)}
                 >
@@ -597,7 +597,7 @@ export default function AdminDashboard({ onLogout }) {
                 <button
                   onClick={() => setActiveTab("events")}
                   title="Manage / Create Events"
-                  className="text-slate-400 hover:text-[#1E2A78] p-1 rounded-md transition-colors cursor-pointer hover:bg-slate-200/60"
+                  className="text-slate-400 hover:text-[#1E2A78] p-1 rounded-md transition-colors cursor-pointer hover:bg-slate-200/60 shrink-0"
                 >
                   <Plus size={13} />
                 </button>
@@ -606,7 +606,7 @@ export default function AdminDashboard({ onLogout }) {
           </div>
 
           {/* Right: Refresh & Sign Out */}
-          <div className="flex items-center gap-2.5 shrink-0">
+          <div className="flex items-center gap-2 shrink-0 ml-auto sm:ml-0">
             <div className="hidden lg:flex items-center gap-2 mr-2">
               <span className="px-2.5 py-1 rounded-full text-[0.68rem] font-bold bg-blue-50 text-[#1E2A78] border border-blue-200 tracking-wider uppercase">
                 Admin Console
@@ -615,17 +615,17 @@ export default function AdminDashboard({ onLogout }) {
             
             <button 
               onClick={activeTab === "settings" ? fetchSettings : fetchAttendees} 
-              className="btn btn-secondary btn-sm text-xs rounded-xl shadow-2xs flex items-center gap-1.5 cursor-pointer"
+              className="btn btn-secondary btn-sm text-xs rounded-xl shadow-2xs flex items-center gap-1 cursor-pointer px-2.5 py-1 sm:px-3 sm:py-1.5"
               title="Refresh Data"
             >
-              <RefreshCw size={13} />
-              <span>Refresh</span>
+              <RefreshCw size={12} />
+              <span className="hidden xs:inline">Refresh</span>
             </button>
             <button 
               onClick={onLogout} 
-              className="btn btn-sm text-xs text-red-700 hover:bg-red-50 border border-red-200 rounded-xl flex items-center gap-1.5 cursor-pointer"
+              className="btn btn-sm text-xs text-red-700 hover:bg-red-50 border border-red-200 rounded-xl flex items-center gap-1 cursor-pointer px-2.5 py-1 sm:px-3 sm:py-1.5"
             >
-              <LogOut size={13} /> 
+              <LogOut size={12} /> 
               <span>Sign Out</span>
             </button>
           </div>
@@ -635,28 +635,29 @@ export default function AdminDashboard({ onLogout }) {
 
       {/* ── Midnight Navy University Ribbon Navigation ────────────────── */}
       <nav className="w-full bg-[#0D1038] text-white shadow-sm sticky top-0 z-40 border-b border-slate-800">
-        <div className="w-full px-6 sm:px-10 lg:px-12 flex items-center justify-between overflow-x-auto">
-          <div className="flex items-center gap-2 py-2">
+        <div className="w-full px-2.5 sm:px-6 lg:px-12 flex items-center justify-between overflow-x-auto no-scrollbar scroll-smooth">
+          <div className="flex items-center gap-1.5 sm:gap-2 py-1.5 sm:py-2">
             {[
-              { id: "dashboard", label: "Programs & Roster", icon: <Users size={14} /> },
-              { id: "history", label: "Upload & Audit History", icon: <Clock size={14} /> },
-              { id: "events", label: "Events & Gates", icon: <ScanLine size={14} /> },
-              { id: "campaigns", label: "Email Passes", icon: <Mail size={14} /> },
-              { id: "settings", label: "System Settings", icon: <Settings size={14} /> },
+              { id: "dashboard", label: "Roster", fullLabel: "Programs & Roster", icon: <Users size={13} /> },
+              { id: "history", label: "History", fullLabel: "Upload History", icon: <Clock size={13} /> },
+              { id: "events", label: "Events", fullLabel: "Events & Gates", icon: <ScanLine size={13} /> },
+              { id: "campaigns", label: "Passes", fullLabel: "Email Passes", icon: <Mail size={13} /> },
+              { id: "settings", label: "Settings", fullLabel: "System Settings", icon: <Settings size={13} /> },
             ].map((tab) => {
               const isActive = activeTab === tab.id;
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`px-4 py-2 text-xs font-bold rounded-full flex items-center gap-2 transition-all whitespace-nowrap cursor-pointer ${
+                  className={`px-3 sm:px-4 py-1.5 sm:py-2 text-[11px] sm:text-xs font-bold rounded-full flex items-center gap-1.5 transition-all whitespace-nowrap cursor-pointer shrink-0 ${
                     isActive
                       ? "bg-[#FFB800] text-black font-black shadow-xs"
                       : "text-white/80 hover:bg-white/10 hover:text-white"
                   }`}
                 >
                   {tab.icon}
-                  <span>{tab.label}</span>
+                  <span className="hidden sm:inline">{tab.fullLabel}</span>
+                  <span className="inline sm:hidden">{tab.label}</span>
                 </button>
               );
             })}
@@ -669,14 +670,7 @@ export default function AdminDashboard({ onLogout }) {
       </nav>
 
       {/* ── Main Workspace (Full Width & Perfectly Centered) ──────────── */}
-      <main 
-        className="flex-1 w-full"
-        style={{ 
-          maxWidth: '1440px', 
-          margin: '0 auto', 
-          padding: '2rem 1.5rem 4rem' 
-        }}
-      >
+      <main className="flex-1 w-full max-w-[1440px] mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pb-12">
         {activeTab === "events" ? (
           <EventManagement activeEventId={activeEventId} setActiveEventId={setActiveEventId} />
         ) : activeTab === "campaigns" ? (
