@@ -275,13 +275,25 @@ export default function VolunteerScanner({ role, onLogout }) {
   };
 
   const handleSendOtp = async (e) => {
-    e.preventDefault(); setLoading(true); setScanResult(null); setErrorMsg(null);
-    try { 
-      await api.post('/otp/send', { roll: roll.trim(), type: role === 'FOOD_VOLUNTEER' ? 'food' : 'entry' }); 
-      setOtpSent(true); 
-      toast({ type: 'info', message: 'Verification OTP sent to registered student email.' }); 
+    e.preventDefault(); 
+    if (!roll.trim()) {
+      toast({ type: 'warning', message: 'Please enter student roll number.' });
+      return;
     }
-    catch (err) { const m = err.response?.data?.error || 'Failed to send OTP.'; setErrorMsg(m); toast({ type: 'error', message: m }); }
+    setLoading(true); setScanResult(null); setErrorMsg(null);
+    try { 
+      const { data } = await api.post('/otp/send', { 
+        roll: roll.trim(), 
+        type: role === 'FOOD_VOLUNTEER' ? 'food' : 'entry' 
+      }); 
+      setOtpSent(true); 
+      toast({ type: 'success', message: data.message || 'Verification OTP dispatched to student email.' }); 
+    }
+    catch (err) { 
+      const m = err.response?.data?.error || err.message || 'Failed to send OTP.'; 
+      setErrorMsg(m); 
+      toast({ type: 'error', message: m }); 
+    }
     finally { setLoading(false); }
   };
 
@@ -291,24 +303,44 @@ export default function VolunteerScanner({ role, onLogout }) {
       toast({ type: 'warning', message: 'Please select a checkpoint first!' });
       return;
     }
+    if (!otp.trim()) {
+      toast({ type: 'warning', message: 'Please enter 6-digit OTP.' });
+      return;
+    }
     setLoading(true); setScanResult(null); setErrorMsg(null);
     try {
-      const { data } = await api.post('/otp/verify', { roll: roll.trim(), otp: otp.trim(), type: role === 'FOOD_VOLUNTEER' ? 'food' : 'entry' });
-      await api.post('/attendees/scan', { 
-        token: data.token, 
+      const { data } = await api.post('/otp/verify', { 
+        roll: roll.trim(), 
+        otp: otp.trim(), 
         checkpointId: selectedCheckpoint.id,
-        type: role === 'FOOD_VOLUNTEER' ? 'food' : 'entry'
+        type: role === 'FOOD_VOLUNTEER' ? 'food' : 'entry' 
       });
+
+      // If not already marked admitted by verifyOtp, fallback to scan
+      if (data.token && !data.admitted) {
+        await api.post('/attendees/scan', { 
+          token: data.token, 
+          checkpointId: selectedCheckpoint.id,
+          type: role === 'FOOD_VOLUNTEER' ? 'food' : 'entry'
+        });
+      }
       
-      setScanResult({ name: data.name, roll: roll.trim() }); setScanCount(c => c + 1); 
+      setScanResult({ name: data.name, roll: roll.trim() }); 
+      setScanCount(c => c + 1); 
       triggerHaptic('success');
       playTone(880, 1320, 0.2);
-      setRoll(''); setOtp(''); setOtpSent(false);
+      setFlash('success');
+      setRoll(''); 
+      setOtp(''); 
+      setOtpSent(false);
+      setUseOtp(false);
       setShowResult(true);
+      toast({ type: 'success', message: data.message || `Admitted: ${data.name}` });
     } catch (err) { 
-      const m = err.response?.data?.error || 'OTP verification failed.'; 
+      const m = err.response?.data?.error || err.message || 'OTP verification failed.'; 
       setErrorMsg(m); 
       triggerHaptic('error');
+      setFlash('error');
       toast({ type: 'error', message: m }); 
     }
     finally { setLoading(false); }
@@ -781,8 +813,8 @@ export default function VolunteerScanner({ role, onLogout }) {
         )}
 
         {/* ── Result Modal Card ─── */}
-        {showResult && !useOtp && (
-          <div className="absolute inset-0 z-40 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+        {showResult && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
             <div className="w-full max-w-sm bg-white/98 backdrop-blur-2xl rounded-[32px] border border-white/80 shadow-[0_25px_70px_rgba(0,0,0,0.25)] p-7 sm:p-8 text-center animate-pop-in relative overflow-hidden">
               
               {scanResult ? (
