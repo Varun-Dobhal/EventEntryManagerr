@@ -42,19 +42,25 @@ exports.createEvent = async (req, res) => {
   try {
     const { name, type, date, venue, bannerImage, description, entryTiming, exitTiming, isSequential, checkpoints } = req.body;
     
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: "Event name is required." });
+    }
+
     // Auto-activate the first event or if none are active
     const activeCount = await prisma.event.count({ where: { isActive: true } });
     
+    const parsedDate = date && !isNaN(new Date(date).getTime()) ? new Date(date) : new Date();
+
     const event = await prisma.event.create({
       data: {
-        name,
-        type,
-        date: new Date(date),
-        venue,
-        bannerImage,
-        description,
-        entryTiming,
-        exitTiming,
+        name: name.trim(),
+        type: type || "Campus Event",
+        date: parsedDate,
+        venue: venue || "Graphic Era Campus",
+        bannerImage: bannerImage || null,
+        description: description || null,
+        entryTiming: entryTiming || null,
+        exitTiming: exitTiming || null,
         isActive: activeCount === 0,
         isSequential: isSequential || false
       }
@@ -68,10 +74,21 @@ exports.createEvent = async (req, res) => {
         isActive: c.isActive !== undefined ? c.isActive : true
       }));
       await prisma.checkpoint.createMany({ data: cps });
+    } else {
+      // Create a default "Main Gate Entry" checkpoint for the event
+      await prisma.checkpoint.create({
+        data: {
+          eventId: event.id,
+          name: "Main Gate Entry",
+          order: 0,
+          isActive: true
+        }
+      });
     }
 
     res.status(201).json(event);
   } catch (error) {
+    console.error("Error creating event:", error);
     res.status(500).json({ error: "Failed to create event." });
   }
 };

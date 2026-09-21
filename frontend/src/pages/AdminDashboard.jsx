@@ -157,8 +157,11 @@ export default function AdminDashboard({ onLogout }) {
     try {
       const res = await api.get("/events");
       setEvents(res.data);
-      const active = res.data.find(e => e.isActive);
-      if (active && !activeEventId) setActiveEventId(active.id);
+      const active = res.data.find(e => e.isActive) || res.data[0];
+      if (active && !activeEventId) {
+        setActiveEventId(active.id);
+        if (!eventName) setEventName(active.name);
+      }
     } catch (e) {
       console.error(e);
     }
@@ -275,22 +278,37 @@ export default function AdminDashboard({ onLogout }) {
   };
 
   const handleUpload = async () => {
-    if (!activeEventId) {
-      setError("Please select or create an event in the top-left dropdown first!");
-      return;
-    }
-    if (!eventName.trim()) {
-      setError("Event name is required!");
+    if (!eventName.trim() && !activeEventId) {
+      setError("Please enter an Event Name!");
       return;
     }
     setError(null);
     setLoading(true);
     try {
+      let targetEventId = activeEventId;
+
+      // If no active event exists, auto-create event from the entered Event Name!
+      if (!targetEventId) {
+        let targetEvent = events.find(e => e.name.toLowerCase() === eventName.trim().toLowerCase());
+        if (!targetEvent) {
+          const createRes = await api.post("/events", {
+            name: eventName.trim(),
+            type: "Campus Event",
+            date: new Date().toISOString(),
+            venue: "Graphic Era Campus"
+          });
+          targetEvent = createRes.data;
+          await fetchGlobalEvents();
+        }
+        targetEventId = targetEvent.id;
+        setActiveEventId(targetEvent.id);
+      }
+
       const fd = new FormData();
       fd.append("file", file);
       fd.append("mapping", JSON.stringify(mapping));
-      fd.append("eventName", eventName.trim());
-      fd.append("eventId", activeEventId);
+      fd.append("eventName", eventName.trim() || activeEvent?.name || "Campus Event");
+      fd.append("eventId", targetEventId);
       
       const res = await api.post("/attendees/upload-excel", fd, {
         responseType: "blob",
@@ -554,16 +572,36 @@ export default function AdminDashboard({ onLogout }) {
             <div className="h-8 w-px bg-slate-200 hidden md:block" />
 
             {/* Active Event Dropdown */}
-            <div className="hidden sm:flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 shadow-2xs">
-              <span className="text-xs font-bold text-slate-500">Active Event:</span>
-              <select 
-                className="bg-transparent text-xs font-bold text-[#1E2A78] focus:outline-none cursor-pointer pr-1"
-                value={activeEventId}
-                onChange={(e) => setActiveEventId(e.target.value)}
-              >
-                {events.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
-              </select>
-            </div>
+            {events.length === 0 ? (
+              <div className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 rounded-xl px-2.5 py-1 text-xs shadow-2xs">
+                <span className="text-amber-800 font-bold text-[0.7rem]">No Events</span>
+                <button
+                  onClick={() => setActiveTab("events")}
+                  className="btn btn-xs bg-[#FFB800] hover:bg-[#E5A600] text-black font-black px-2.5 py-1 rounded-lg text-[0.68rem] cursor-pointer flex items-center gap-1 shadow-2xs"
+                >
+                  <Plus size={12} />
+                  <span>+ Create Event</span>
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1 shadow-2xs">
+                <span className="text-[0.72rem] font-bold text-slate-500">Active Event:</span>
+                <select 
+                  className="bg-transparent text-xs font-bold text-[#1E2A78] focus:outline-none cursor-pointer pr-1 max-w-[160px] truncate"
+                  value={activeEventId}
+                  onChange={(e) => setActiveEventId(e.target.value)}
+                >
+                  {events.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
+                </select>
+                <button
+                  onClick={() => setActiveTab("events")}
+                  title="Manage / Create Events"
+                  className="text-slate-400 hover:text-[#1E2A78] p-1 rounded-md transition-colors cursor-pointer hover:bg-slate-200/60"
+                >
+                  <Plus size={13} />
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Right: Refresh & Sign Out */}
@@ -601,7 +639,7 @@ export default function AdminDashboard({ onLogout }) {
             {[
               { id: "dashboard", label: "Programs & Roster", icon: <Users size={14} /> },
               { id: "history", label: "Upload & Audit History", icon: <Clock size={14} /> },
-              { id: "events", label: "Departments & Gates", icon: <ScanLine size={14} /> },
+              { id: "events", label: "Events & Gates", icon: <ScanLine size={14} /> },
               { id: "campaigns", label: "Email Passes", icon: <Mail size={14} /> },
               { id: "settings", label: "System Settings", icon: <Settings size={14} /> },
             ].map((tab) => {
