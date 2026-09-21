@@ -387,10 +387,18 @@ export default function AdminDashboard({ onLogout }) {
 
     setTestLoading(true);
     try {
-      await api.post("/settings/test-email");
-      toast({ type: "success", message: `Connection test successful! Sent via ${activeProvider.name}.` });
+      const res = await api.post("/settings/test-email", {
+        recipient: activeProvider.senderEmail
+      });
+      toast({ 
+        type: "success", 
+        message: res.data?.message || `Connection test successful! Sent test email to ${activeProvider.senderEmail}.` 
+      });
     } catch (err) {
-      toast({ type: "error", message: err.response?.data?.error || "Connection test failed." });
+      toast({ 
+        type: "error", 
+        message: err.response?.data?.error || "Connection test failed." 
+      });
     } finally {
       setTestLoading(false);
     }

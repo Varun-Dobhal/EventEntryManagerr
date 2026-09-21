@@ -105,33 +105,75 @@ exports.testConnection = async (req, res) => {
   try {
     const { provider, instance } = await getProvider();
     
-    // Attempt to send a minimal test email
-    const toEmail = req.user?.email || "admin@example.com";
-    let success = false;
+    // Attempt to send test email to specified recipient, or to the verified sender email itself
+    const toEmail = req.body?.recipient?.trim() || provider.senderEmail || req.user?.email;
+
+    if (!toEmail) {
+      return res.status(400).json({ error: "No recipient email address specified." });
+    }
     
     if (provider.name === "RESEND") {
-      const res = await instance.emails.send({
+      const resData = await instance.emails.send({
         from: provider.senderEmail,
         to: toEmail,
-        subject: "Test Connection",
-        html: "<p>This is a test email.</p>",
+        subject: "Graphic Era Event Entry Manager - Test Connection",
+        html: `
+          <div style="font-family: Arial, sans-serif; padding: 24px; color: #0D1038; max-width: 500px; border: 1px solid #E2E8F0; border-radius: 12px;">
+            <h2 style="color: #A31D24; margin-top: 0;">Graphic Era (Deemed to be University)</h2>
+            <p style="font-size: 15px; font-weight: bold; color: #16A34A;">✔ Email Delivery Connection Verified!</p>
+            <p style="font-size: 13px; color: #334155; line-height: 1.5;">This email confirms that your <strong>Resend</strong> provider credentials are operational and ready for pass dispatch.</p>
+            <hr style="border: none; border-top: 1px solid #E2E8F0; margin: 16px 0;" />
+            <p style="font-size: 11px; color: #94A3B8; margin: 0;">Sender: ${provider.senderEmail} | Recipient: ${toEmail}</p>
+          </div>
+        `,
       });
-      if (res.error) {
-        throw new Error(res.error.message || JSON.stringify(res.error));
+      if (resData.error) {
+        throw new Error(resData.error.message || JSON.stringify(resData.error));
       }
-      success = true;
-    } else {
+      return res.json({ message: `Connection successful! Test email delivered to ${toEmail}.` });
+    }
+
+    // For Nodemailer transports (AWS_SES, SMTP, GOOGLE)
+    // 1. Verify SMTP connection authentication
+    if (instance && typeof instance.verify === "function") {
+      try {
+        await instance.verify();
+      } catch (verifyErr) {
+        console.error("SMTP verify error:", verifyErr);
+        let errorMsg = verifyErr.message || "SMTP Verification Failed";
+        if (errorMsg.includes("535") || errorMsg.includes("Authentication Credentials Invalid")) {
+          errorMsg = "AWS SES Authentication Failed (535): Invalid credentials. Please verify your Access Key ID and Secret Access Key / SES SMTP password.";
+        }
+        return res.status(400).json({ error: errorMsg });
+      }
+    }
+
+    // 2. Dispatch minimal test email
+    try {
       await instance.sendMail({
         from: provider.senderEmail,
         to: toEmail,
-        subject: "Test Connection",
-        html: "<p>This is a test email.</p>",
+        subject: "Graphic Era Event Entry Manager - Test Connection",
+        html: `
+          <div style="font-family: Arial, sans-serif; padding: 24px; color: #0D1038; max-width: 500px; border: 1px solid #E2E8F0; border-radius: 12px;">
+            <h2 style="color: #A31D24; margin-top: 0;">Graphic Era (Deemed to be University)</h2>
+            <p style="font-size: 15px; font-weight: bold; color: #16A34A;">✔ Email Delivery Connection Verified!</p>
+            <p style="font-size: 13px; color: #334155; line-height: 1.5;">This email confirms that your <strong>${provider.name}</strong> delivery configuration is operational and connected.</p>
+            <hr style="border: none; border-top: 1px solid #E2E8F0; margin: 16px 0;" />
+            <p style="font-size: 11px; color: #94A3B8; margin: 0;">Sender: ${provider.senderEmail} | Recipient: ${toEmail}</p>
+          </div>
+        `,
       });
-      success = true;
-    }
-
-    if (success) {
-      res.json({ message: "Connection successful." });
+      return res.json({ message: `Connection successful! Test email delivered to ${toEmail}.` });
+    } catch (sendErr) {
+      console.error("sendMail test error:", sendErr);
+      let sendMsg = sendErr.message || "Failed to send test email";
+      if (sendMsg.includes("Email address is not verified") || sendMsg.includes("554")) {
+        return res.status(400).json({ 
+          error: `AWS SES Sandbox: Recipient "${toEmail}" is not verified in AWS SES. In sandbox mode, you can only send to verified emails or domains (e.g. ${provider.senderEmail}). To send to anyone, request production access in AWS SES Console.`
+        });
+      }
+      return res.status(400).json({ error: sendMsg });
     }
   } catch (error) {
     console.error("Error testing connection:", error);

@@ -1,3 +1,4 @@
+const crypto = require("crypto");
 const { Resend } = require("resend");
 const nodemailer = require("nodemailer");
 const prisma = require("../prismaClient");
@@ -11,6 +12,30 @@ const DRIVE_LINK =
 
 let cachedProvider = null;
 let providerInstance = null;
+
+// Calculates AWS SES SMTP password from an IAM Secret Access Key
+function calculateSesSmtpPassword(secretAccessKey) {
+  if (!secretAccessKey) return "";
+  // If already an AWS SES SMTP password (44-char base64 starting with B or A), use as is
+  if (secretAccessKey.length === 44 && (secretAccessKey.startsWith("B") || secretAccessKey.startsWith("A"))) {
+    return secretAccessKey;
+  }
+  try {
+    const MESSAGE = "SendRawEmail";
+    const VERSION = 0x02;
+    const signature = crypto
+      .createHmac("sha256", secretAccessKey)
+      .update(MESSAGE)
+      .digest();
+    const signatureWithVersion = Buffer.concat([
+      Buffer.from([VERSION]),
+      signature,
+    ]);
+    return signatureWithVersion.toString("base64");
+  } catch (e) {
+    return secretAccessKey;
+  }
+}
 
 const getProvider = async () => {
   const provider = await prisma.emailProvider.findFirst({
@@ -29,37 +54,51 @@ const getProvider = async () => {
   let instance = null;
 
   if (provider.name === "RESEND") {
-    instance = new Resend(credentials.apiKey);
+    instance = new Resend(credentials.apiKey?.trim());
   } else if (provider.name === "GOOGLE") {
     instance = nodemailer.createTransport({
       service: "gmail",
       auth: {
         type: "OAuth2",
-        user: provider.senderEmail,
-        clientId: credentials.clientId,
-        clientSecret: credentials.clientSecret,
-        refreshToken: credentials.refreshToken,
+        user: provider.senderEmail?.trim(),
+        clientId: credentials.clientId?.trim(),
+        clientSecret: credentials.clientSecret?.trim(),
+        refreshToken: credentials.refreshToken?.trim(),
       },
     });
   } else if (provider.name === "AWS_SES") {
+    const accessKey = credentials.accessKey?.trim();
+    const rawSecret = credentials.secretKey?.trim();
+    const region = credentials.region?.trim() || "us-east-1";
+
+    // Support both raw 40-char IAM Secret Key and generated 44-char SES SMTP Password
+    let smtpPassword = rawSecret;
+    if (rawSecret && rawSecret.length === 40 && !rawSecret.startsWith("B")) {
+      smtpPassword = calculateSesSmtpPassword(rawSecret);
+    }
+
     instance = nodemailer.createTransport({
-      host: `email-smtp.${credentials.region}.amazonaws.com`,
+      host: `email-smtp.${region}.amazonaws.com`,
       port: 465,
       secure: true,
       auth: {
-        user: credentials.accessKey,
-        pass: credentials.secretKey,
+        user: accessKey,
+        pass: smtpPassword,
       },
+      connectionTimeout: 10000,
+      greetingTimeout: 5000,
     });
   } else if (provider.name === "SMTP") {
     instance = nodemailer.createTransport({
-      host: credentials.host,
+      host: credentials.host?.trim(),
       port: Number(credentials.port),
       secure: Number(credentials.port) === 465,
       auth: {
-        user: credentials.username,
-        pass: credentials.password,
+        user: credentials.username?.trim(),
+        pass: credentials.password?.trim(),
       },
+      connectionTimeout: 10000,
+      greetingTimeout: 5000,
     });
   }
 
