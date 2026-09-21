@@ -35,6 +35,7 @@ router.delete('/clear', protect, authorize('ADMIN'), attendeeController.clearAtt
 
 router.post('/scan', protect, authorize('ADMIN', 'ENTRY_VOLUNTEER', 'FOOD_VOLUNTEER'), attendeeController.scanAttendee);
 router.get('/', protect, authorize('ADMIN'), attendeeController.getAllAttendees);
+router.post('/manual', protect, authorize('ADMIN'), attendeeController.createManualAttendee);
 router.post('/send-email/:id', protect, authorize('ADMIN'), attendeeController.sendManualEmail);
 
 router.post('/campaigns/start', protect, authorize('ADMIN'), attendeeController.startCampaign);

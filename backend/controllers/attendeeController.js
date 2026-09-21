@@ -820,3 +820,151 @@ exports.retryFailedEmails = async (req, res) => {
     res.status(500).json({ error: "Failed to retry failed emails." });
   }
 };
+
+exports.createManualAttendee = async (req, res) => {
+  try {
+    const { name, roll, email, eventId, sendEmailImmediately, customMessage } = req.body;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: "Student name is required." });
+    }
+    if (!roll || !roll.trim()) {
+      return res.status(400).json({ error: "University Roll number is required." });
+    }
+    if (!eventId) {
+      return res.status(400).json({ error: "Event ID is required." });
+    }
+
+    const cleanName = name.trim();
+    const cleanRoll = roll.trim().toUpperCase();
+    const cleanEmail = email ? email.trim() : null;
+
+    if (sendEmailImmediately && !cleanEmail) {
+      return res.status(400).json({ error: "Email address is required to dispatch pass email." });
+    }
+
+    // Check if event exists
+    const event = await prisma.event.findUnique({
+      where: { id: Number(eventId) }
+    });
+    if (!event) {
+      return res.status(404).json({ error: "Event not found." });
+    }
+
+    // Check if roll already exists in this event
+    const existingAttendee = await prisma.attendee.findFirst({
+      where: {
+        eventId: Number(eventId),
+        roll: cleanRoll,
+      }
+    });
+
+    if (existingAttendee) {
+      return res.status(409).json({ 
+        error: `Student with roll number "${cleanRoll}" already exists in this event (${existingAttendee.name}).`,
+        existingAttendee
+      });
+    }
+
+    const frontendHost =
+      process.env.FRONTEND_URL || `${req.protocol}://${req.get("host")}`;
+    const token = uuidv4();
+    const qrLink = `${frontendHost}/verify/${token}`;
+
+    const newAttendee = await prisma.attendee.create({
+      data: {
+        name: cleanName,
+        roll: cleanRoll,
+        email: cleanEmail,
+        token,
+        qrLink,
+        eventId: Number(eventId),
+      },
+      include: { event: true }
+    });
+
+    let emailSentResult = false;
+    let emailError = null;
+
+    if (sendEmailImmediately && cleanEmail) {
+      try {
+        const qrCodeDataUrl = await QRCode.toDataURL(newAttendee.qrLink, {
+          margin: 3,
+          width: 380,
+          errorCorrectionLevel: "M",
+          color: { dark: "#000000", light: "#FFFFFF" },
+        });
+
+        await sendQrEmail(newAttendee, event, qrCodeDataUrl, customMessage);
+
+        await prisma.attendee.update({
+          where: { id: newAttendee.id },
+          data: {
+            emailSent: true,
+            emailSentAt: new Date(),
+          }
+        });
+        emailSentResult = true;
+
+        // Log into EmailJob for tracking
+        try {
+          let manualCampaign = await prisma.emailCampaign.findFirst({
+            where: { eventId: Number(eventId), name: "Direct Pass Dispatches" }
+          });
+          if (!manualCampaign) {
+            manualCampaign = await prisma.emailCampaign.create({
+              data: {
+                name: "Direct Pass Dispatches",
+                eventId: Number(eventId),
+                status: "COMPLETED",
+                totalCount: 1,
+                sentCount: 1
+              }
+            });
+          } else {
+            await prisma.emailCampaign.update({
+              where: { id: manualCampaign.id },
+              data: {
+                totalCount: { increment: 1 },
+                sentCount: { increment: 1 }
+              }
+            });
+          }
+
+          await prisma.emailJob.create({
+            data: {
+              campaignId: manualCampaign.id,
+              attendeeId: newAttendee.id,
+              recipientEmail: cleanEmail,
+              status: "SENT",
+              sentAt: new Date()
+            }
+          });
+        } catch (jobErr) {
+          console.error("Manual pass job audit error:", jobErr.message);
+        }
+
+      } catch (err) {
+        console.error("Failed to send pass email to manual attendee:", err.message);
+        emailError = err.message;
+      }
+    }
+
+    return res.status(201).json({
+      success: true,
+      message: emailSentResult 
+        ? `Student ${cleanName} added and QR pass sent to ${cleanEmail}!`
+        : (emailError ? `Student ${cleanName} added, but email failed: ${emailError}` : `Student ${cleanName} registered successfully!`),
+      attendee: {
+        ...newAttendee,
+        emailSent: emailSentResult,
+        emailSentAt: emailSentResult ? new Date() : null,
+      },
+      emailSent: emailSentResult,
+      emailError
+    });
+  } catch (error) {
+    console.error("Error creating manual attendee:", error);
+    res.status(500).json({ error: error.message || "Failed to create attendee." });
+  }
+};

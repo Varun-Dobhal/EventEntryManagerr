@@ -33,6 +33,7 @@ import {
   Globe,
   ExternalLink,
   QrCode,
+  UserPlus,
 } from "lucide-react";
 import api from "../utils/api";
 import { useToast } from "../context/ToastContext";
@@ -46,6 +47,7 @@ import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'rec
 import AttendeeTable from "../components/AttendeeTable";
 import DashboardAnalytics from "../components/DashboardAnalytics";
 import MailSentRecords from "../components/MailSentRecords";
+import AddUserManual from "../components/AddUserManual";
 
 function StatCard({ label, value, total, color, icon, statColor, subtitle, badge, theme = "neutral" }) {
   const pct = total > 0 ? Math.round((value / total) * 100) : 0;
@@ -678,6 +680,7 @@ export default function AdminDashboard({ onLogout }) {
             {[
               { id: "dashboard", label: "Dashboard", icon: <LayoutDashboard size={17} /> },
               { id: "mail-sent", label: "Mail Sent", icon: <MailCheck size={17} /> },
+              { id: "add-user", label: "Add Users", icon: <UserPlus size={17} /> },
               { id: "events", label: "Events & Gates", icon: <ScanLine size={17} /> },
               { id: "campaigns", label: "Email Passes", icon: <Send size={17} /> },
               { id: "settings", label: "System Settings", icon: <Settings size={17} /> },
@@ -701,25 +704,6 @@ export default function AdminDashboard({ onLogout }) {
               );
             })}
           </div>
-
-          {/* Sidebar Footer: Volunteer Scanner Link & Portal Info */}
-          <div className="pt-4 border-t border-slate-100 space-y-2">
-            <a
-              href="/volunteer"
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center justify-between px-3 py-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold border border-slate-200/80 transition-colors"
-            >
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span>Live Scanner</span>
-              </div>
-              <ExternalLink size={12} className="text-slate-400" />
-            </a>
-            <div className="px-3 text-[0.68rem] text-slate-400 font-medium">
-              <span>Session 2026–2027</span>
-            </div>
-          </div>
         </aside>
 
         {/* ── Mobile Sidebar Drawer (Screens < 768px) ── */}
@@ -729,7 +713,7 @@ export default function AdminDashboard({ onLogout }) {
               className="fixed inset-0 bg-black/40 backdrop-blur-xs transition-opacity" 
               onClick={() => setMobileSidebarOpen(false)} 
             />
-            <div className="relative w-64 bg-white flex flex-col justify-between p-4 shadow-xl z-10 animate-fade-in">
+            <div className="relative w-64 bg-white flex flex-col p-4 shadow-xl z-10 animate-fade-in">
               <div>
                 <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
                   <span className="font-bold text-sm text-slate-900">Event Portal Menu</span>
@@ -744,6 +728,7 @@ export default function AdminDashboard({ onLogout }) {
                   {[
                     { id: "dashboard", label: "Dashboard", icon: <LayoutDashboard size={17} /> },
                     { id: "mail-sent", label: "Mail Sent", icon: <MailCheck size={17} /> },
+                    { id: "add-user", label: "Add Users", icon: <UserPlus size={17} /> },
                     { id: "events", label: "Events & Gates", icon: <ScanLine size={17} /> },
                     { id: "campaigns", label: "Email Passes", icon: <Send size={17} /> },
                     { id: "settings", label: "System Settings", icon: <Settings size={17} /> },
@@ -769,18 +754,6 @@ export default function AdminDashboard({ onLogout }) {
                   })}
                 </div>
               </div>
-
-              <div className="pt-3 border-t border-slate-100">
-                <a
-                  href="/volunteer"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center justify-between px-3 py-2 rounded-xl bg-slate-50 text-slate-700 text-xs font-semibold border border-slate-200"
-                >
-                  <span>Live Scanner</span>
-                  <ExternalLink size={12} />
-                </a>
-              </div>
             </div>
           </div>
         )}
@@ -788,7 +761,16 @@ export default function AdminDashboard({ onLogout }) {
         {/* ── Main Workspace Content Area ──────────── */}
         <main className="flex-1 min-w-0 bg-[#F7F9FC] p-4 sm:p-6 lg:p-8 overflow-y-auto">
           <div className="max-w-[1400px] mx-auto w-full">
-        {activeTab === "events" ? (
+        {activeTab === "add-user" ? (
+          <AddUserManual
+            activeEvent={activeEvent}
+            activeEventId={activeEventId}
+            events={events}
+            setActiveEventId={setActiveEventId}
+            fetchAttendees={fetchAttendees}
+            onNavigateToRoster={() => setActiveTab("dashboard")}
+          />
+        ) : activeTab === "events" ? (
           <EventManagement activeEventId={activeEventId} setActiveEventId={setActiveEventId} />
         ) : activeTab === "campaigns" ? (
           <CampaignManagement activeEventId={activeEventId} />
