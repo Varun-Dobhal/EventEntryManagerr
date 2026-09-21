@@ -1,6 +1,7 @@
 const crypto = require("crypto");
 const { Resend } = require("resend");
 const nodemailer = require("nodemailer");
+const QRCode = require("qrcode");
 const prisma = require("../prismaClient");
 const { decryptJSON } = require("./crypto");
 

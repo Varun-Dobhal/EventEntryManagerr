@@ -247,17 +247,12 @@ exports.deleteCampaign = async (req, res) => {
   try {
     const { id } = req.params;
     
-    // Check if campaign is running
     const campaign = await prisma.emailCampaign.findUnique({
       where: { id: Number(id) }
     });
     
     if (!campaign) {
       return res.status(404).json({ error: "Campaign not found" });
-    }
-    
-    if (campaign.status === "RUNNING") {
-      return res.status(400).json({ error: "Cannot delete a running campaign. Please pause or cancel it first." });
     }
 
     // Delete associated jobs first due to foreign key constraints

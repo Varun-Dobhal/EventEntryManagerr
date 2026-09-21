@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import api from "../utils/api";
 import { useToast } from "../context/ToastContext";
 import { ArrowLeft, Play, Pause, XCircle, CheckCircle, Clock, Activity, Download, RefreshCw, Trash2 } from "lucide-react";
+import DeleteModal from "./DeleteModal";
 
 export default function CampaignConsole({ campaignId, onClose, onRedirectCleanup }) {
   const [campaign, setCampaign] = useState(null);
@@ -9,8 +10,24 @@ export default function CampaignConsole({ campaignId, onClose, onRedirectCleanup
   const [logFilter, setLogFilter] = useState("all");
   const [rate, setRate] = useState(0);
   const [error, setError] = useState(null);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const { toast } = useToast();
   const logsEndRef = useRef(null);
+
+  const handleDeleteCampaign = async () => {
+    setIsDeleting(true);
+    try {
+      await api.delete(`/campaigns/${campaignId}`);
+      toast({ type: "success", message: "Campaign deleted successfully." });
+      setDeleteModalOpen(false);
+      onClose();
+    } catch (err) {
+      toast({ type: "error", message: err.response?.data?.error || "Failed to delete campaign." });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   // Poll campaign stats
   useEffect(() => {
@@ -192,7 +209,10 @@ export default function CampaignConsole({ campaignId, onClose, onRedirectCleanup
               <RefreshCw size={13} className="mr-1" /> Retry {campaign.failedCount} Failed
             </button>
           )}
-          <button className="btn btn-secondary btn-sm text-red-700 border-red-300 hover:bg-red-50 cursor-pointer" onClick={() => onRedirectCleanup({ type: 'campaign', id: campaignId, name: campaign.name, text: '' })}>
+          <button 
+            className="btn btn-secondary btn-sm text-red-700 border-red-300 hover:bg-red-50 cursor-pointer" 
+            onClick={() => setDeleteModalOpen(true)}
+          >
             <Trash2 size={13} className="mr-1" /> Delete Campaign
           </button>
         </div>
@@ -263,6 +283,16 @@ export default function CampaignConsole({ campaignId, onClose, onRedirectCleanup
           <div ref={logsEndRef} />
         </div>
       </div>
+
+      <DeleteModal
+        isOpen={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        onConfirm={handleDeleteCampaign}
+        title="Delete Campaign"
+        message={`Are you sure you want to delete campaign "${campaign.name}"? All associated job logs and records will be permanently removed.`}
+        isDeleting={isDeleting}
+        confirmText="Delete Campaign"
+      />
 
     </div>
   );

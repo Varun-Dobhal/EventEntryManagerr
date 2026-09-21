@@ -193,6 +193,20 @@ export default function CampaignManagement({ activeEventId, onRedirectCleanup })
   const [campaignFailures, setCampaignFailures] = useState([]);
   const [activeConsoleId, setActiveConsoleId] = useState(null);
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, templateId: null, isDeleting: false });
+  const [deleteCampaignModal, setDeleteCampaignModal] = useState({ isOpen: false, id: null, name: "", isDeleting: false });
+
+  const confirmDeleteCampaign = async () => {
+    setDeleteCampaignModal(prev => ({ ...prev, isDeleting: true }));
+    try {
+      await api.delete(`/campaigns/${deleteCampaignModal.id}`);
+      toast({ type: "success", message: "Campaign deleted." });
+      fetchCampaigns();
+    } catch (err) {
+      toast({ type: "error", message: err.response?.data?.error || "Failed to delete campaign." });
+    } finally {
+      setDeleteCampaignModal({ isOpen: false, id: null, name: "", isDeleting: false });
+    }
+  };
 
   useEffect(() => {
     if (activeEventId) {
@@ -887,6 +901,13 @@ export default function CampaignManagement({ activeEventId, onRedirectCleanup })
                       <button className="btn btn-sm btn-secondary" onClick={() => downloadReport(camp)} title="Download Report CSV">
                         <Download size={13} />
                       </button>
+                      <button 
+                        className="btn btn-sm btn-secondary text-red-600 hover:bg-red-50" 
+                        onClick={() => setDeleteCampaignModal({ isOpen: true, id: camp.id, name: camp.name, isDeleting: false })} 
+                        title="Delete Campaign"
+                      >
+                        <Trash2 size={13} />
+                      </button>
                     </div>
                   </div>
 
@@ -993,6 +1014,16 @@ export default function CampaignManagement({ activeEventId, onRedirectCleanup })
         title="Delete Template"
         message="Are you sure you want to permanently delete this email template?"
         isDeleting={deleteModal.isDeleting}
+      />
+
+      <DeleteModal
+        isOpen={deleteCampaignModal.isOpen}
+        onClose={() => setDeleteCampaignModal({ isOpen: false, id: null, name: "", isDeleting: false })}
+        onConfirm={confirmDeleteCampaign}
+        title="Delete Campaign"
+        message={`Are you sure you want to permanently delete campaign "${deleteCampaignModal.name}"? All associated job logs and records will be deleted.`}
+        isDeleting={deleteCampaignModal.isDeleting}
+        confirmText="Delete Campaign"
       />
     </div>
   );
