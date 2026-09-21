@@ -38,21 +38,26 @@ import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'rec
 import AttendeeTable from "../components/AttendeeTable";
 import DashboardAnalytics from "../components/DashboardAnalytics";
 
-function StatCard({ label, value, total, color, icon, statColor }) {
+function StatCard({ label, value, total, color, icon, statColor, subtitle, badge }) {
   const pct = total > 0 ? Math.round((value / total) * 100) : 0;
   const accentColor = statColor || color || "#1E2A78";
   return (
-    <div className="bg-white/95 backdrop-blur-md rounded-2xl border border-slate-200/80 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-md transition-all p-5 relative overflow-hidden group">
-      <div className="flex items-start justify-between mb-3 relative z-10">
+    <div className="bg-white rounded-2xl border border-slate-200/90 shadow-[0_2px_12px_rgba(0,0,0,0.03)] hover:shadow-md hover:-translate-y-0.5 transition-all p-4 relative overflow-hidden flex flex-col justify-between group">
+      {/* Top accent border */}
+      <div className="absolute top-0 left-0 right-0 h-1" style={{ backgroundColor: accentColor }} />
+      
+      <div className="flex items-start justify-between gap-2 mb-2 pt-1">
         <div>
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">{label}</p>
-          <div className="flex items-baseline gap-2">
-            <h3 className="text-2xl sm:text-3xl font-black text-slate-900 m-0 tracking-tight">{value}</h3>
-            {total > 0 && <span className="text-xs font-semibold text-slate-400">/ {total}</span>}
+          <p className="text-[0.68rem] font-bold text-slate-400 uppercase tracking-wider">{label}</p>
+          <div className="flex items-baseline gap-1.5 mt-0.5">
+            <h3 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight leading-none">{value}</h3>
+            {total !== undefined && total > 0 && (
+              <span className="text-xs font-semibold text-slate-400">/ {total}</span>
+            )}
           </div>
         </div>
         <div 
-          className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-105" 
+          className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 shadow-2xs" 
           style={{ 
             backgroundColor: `${accentColor}15`, 
             color: accentColor 
@@ -62,18 +67,22 @@ function StatCard({ label, value, total, color, icon, statColor }) {
         </div>
       </div>
       
-      <div className="flex items-center justify-between relative z-10 pt-2 border-t border-slate-100 text-xs">
-        <span className="text-[0.72rem] text-slate-500 font-medium">
-          {total > 0 ? `${pct}% of roster` : "Registered Attendees"}
+      <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+        <span className="text-[0.7rem] text-slate-500 font-medium">
+          {subtitle || (total > 0 ? `${pct}% of roster` : "Registered Attendees")}
         </span>
-        {total > 0 && (
-          <div className="w-20 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+        {badge ? (
+          <span className="text-[0.68rem] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700">
+            {badge}
+          </span>
+        ) : total > 0 ? (
+          <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
             <div 
               className="h-full rounded-full transition-all duration-500 ease-out" 
               style={{ width: `${pct}%`, backgroundColor: accentColor }} 
             />
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );
@@ -148,6 +157,7 @@ export default function AdminDashboard({ onLogout }) {
   const [events, setEvents] = useState([]);
   const [activeEventId, setActiveEventId] = useState("");
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, type: null, id: null, isProcessing: false });
+  const [isImportOpen, setIsImportOpen] = useState(false);
   
   const activeEvent = events.find(e => e.id === activeEventId);
   const eventCheckpoints = activeEvent?.checkpoints || [];
@@ -542,62 +552,66 @@ export default function AdminDashboard({ onLogout }) {
   return (
     <div className="min-h-screen flex flex-col justify-between font-sans bg-[#F8FAFC]">
       
-      {/* ── Top University Masthead ───────────────────────────────────── */}
-      <header className="w-full bg-white border-b border-slate-200 shadow-2xs">
-        <div className="w-full px-3 sm:px-6 lg:px-12 py-2.5 sm:py-3.5 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2.5 sm:gap-4">
+      {/* ── Single Unified Executive Topbar ─────────────────────────── */}
+      <header className="sticky top-0 z-50 w-full bg-[#0B0F28] border-b border-slate-800 shadow-[0_4px_24px_rgba(0,0,0,0.25)]">
+        {/* Top Accent Gradient Bar */}
+        <div className="h-0.5 w-full bg-gradient-to-r from-[#A31D24] via-[#FFB800] to-[#1E2A78]" />
+        
+        <div className="w-full px-3 sm:px-6 lg:px-10 h-16 sm:h-[68px] flex items-center justify-between gap-2 sm:gap-4">
           
-          {/* Left: Official University Logo & Event Selector */}
-          <div className="flex items-center gap-2.5 sm:gap-4 flex-wrap">
+          {/* Left: Graphic Era Logo Crest & Event Switcher */}
+          <div className="flex items-center gap-3 sm:gap-4 shrink-0">
             <div 
-              className="flex items-center gap-2 sm:gap-3 cursor-pointer hover:opacity-95 transition-opacity" 
+              className="flex items-center gap-2.5 cursor-pointer group" 
               onClick={() => setActiveTab("dashboard")}
             >
               <img 
                 src={logoImg} 
                 alt="Graphic Era Crest" 
-                className="w-9 h-9 sm:w-11 sm:h-11 object-contain shrink-0" 
+                className="w-9 h-9 sm:w-10 sm:h-10 object-contain shrink-0 group-hover:scale-105 transition-transform" 
               />
               <div className="flex flex-col justify-center">
-                <span className="font-serif text-lg sm:text-xl font-bold text-[#A31D24] tracking-tight leading-none">
+                <span className="font-serif text-base sm:text-lg font-bold text-white tracking-tight leading-none group-hover:text-[#FFB800] transition-colors">
                   Graphic Era
                 </span>
-                <span className="font-serif text-[0.62rem] sm:text-[0.68rem] text-slate-800 leading-tight mt-0.5">
-                  deemed to be <strong className="font-serif">University</strong>
+                <span className="text-[0.6rem] sm:text-[0.65rem] text-slate-300 leading-tight mt-0.5">
+                  deemed to be <strong className="text-white font-medium">University</strong>
                 </span>
-                <span className="text-[0.5rem] sm:text-[0.55rem] font-bold tracking-[0.22em] text-[#A31D24] uppercase leading-none mt-0.5">
+                <span className="text-[0.5rem] font-bold tracking-[0.22em] text-[#FFB800] uppercase leading-none mt-0.5">
                   DEHRADUN
                 </span>
               </div>
             </div>
 
-            <div className="h-7 w-px bg-slate-200 hidden md:block" />
+            <div className="h-7 w-px bg-white/15 hidden md:block" />
 
-            {/* Active Event Dropdown */}
+            {/* Event Selector Pill */}
             {events.length === 0 ? (
-              <div className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 rounded-xl px-2 py-1 text-xs shadow-2xs">
-                <span className="text-amber-800 font-bold text-[0.68rem]">No Events</span>
+              <div className="hidden sm:flex items-center gap-1.5 bg-amber-500/15 border border-amber-500/30 rounded-xl px-2.5 py-1 text-xs">
+                <span className="text-amber-300 font-bold text-[0.68rem]">No Events</span>
                 <button
                   onClick={() => setActiveTab("events")}
-                  className="btn btn-xs bg-[#FFB800] hover:bg-[#E5A600] text-black font-black px-2 py-0.5 rounded-lg text-[0.65rem] cursor-pointer flex items-center gap-1 shadow-2xs"
+                  className="bg-[#FFB800] hover:bg-[#E5A600] text-black font-black px-2 py-0.5 rounded-lg text-[0.65rem] cursor-pointer flex items-center gap-1"
                 >
                   <Plus size={11} />
                   <span>Create</span>
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2 sm:px-2.5 py-1 shadow-2xs max-w-full">
-                <span className="text-[0.68rem] sm:text-[0.72rem] font-bold text-slate-500 shrink-0">Event:</span>
+              <div className="hidden sm:flex items-center gap-1.5 bg-white/10 hover:bg-white/15 border border-white/15 rounded-xl px-2.5 py-1.5 transition-all">
+                <span className="w-2 h-2 rounded-full bg-[#FFB800] shrink-0" />
+                <span className="text-[0.68rem] font-semibold text-slate-300 shrink-0">Event:</span>
                 <select 
-                  className="bg-transparent text-xs font-bold text-[#1E2A78] focus:outline-none cursor-pointer pr-1 max-w-[120px] sm:max-w-[160px] truncate"
+                  className="bg-transparent text-xs font-bold text-white focus:outline-none cursor-pointer pr-1 max-w-[120px] sm:max-w-[150px] truncate"
                   value={activeEventId}
                   onChange={(e) => setActiveEventId(e.target.value)}
                 >
-                  {events.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
+                  {events.map(ev => <option key={ev.id} value={ev.id} className="bg-[#0D1038] text-white">{ev.name}</option>)}
                 </select>
                 <button
                   onClick={() => setActiveTab("events")}
                   title="Manage / Create Events"
-                  className="text-slate-400 hover:text-[#1E2A78] p-1 rounded-md transition-colors cursor-pointer hover:bg-slate-200/60 shrink-0"
+                  className="text-slate-400 hover:text-[#FFB800] p-0.5 rounded transition-colors cursor-pointer"
                 >
                   <Plus size={13} />
                 </button>
@@ -605,69 +619,61 @@ export default function AdminDashboard({ onLogout }) {
             )}
           </div>
 
-          {/* Right: Refresh & Sign Out */}
-          <div className="flex items-center gap-2 shrink-0 ml-auto sm:ml-0">
-            <div className="hidden lg:flex items-center gap-2 mr-2">
-              <span className="px-2.5 py-1 rounded-full text-[0.68rem] font-bold bg-blue-50 text-[#1E2A78] border border-blue-200 tracking-wider uppercase">
-                Admin Console
-              </span>
-            </div>
-            
-            <button 
-              onClick={activeTab === "settings" ? fetchSettings : fetchAttendees} 
-              className="btn btn-secondary btn-sm text-xs rounded-xl shadow-2xs flex items-center gap-1 cursor-pointer px-2.5 py-1 sm:px-3 sm:py-1.5"
-              title="Refresh Data"
-            >
-              <RefreshCw size={12} />
-              <span className="hidden xs:inline">Refresh</span>
-            </button>
-            <button 
-              onClick={onLogout} 
-              className="btn btn-sm text-xs text-red-700 hover:bg-red-50 border border-red-200 rounded-xl flex items-center gap-1 cursor-pointer px-2.5 py-1 sm:px-3 sm:py-1.5"
-            >
-              <LogOut size={12} /> 
-              <span>Sign Out</span>
-            </button>
-          </div>
-
-        </div>
-      </header>
-
-      {/* ── Midnight Navy University Ribbon Navigation ────────────────── */}
-      <nav className="w-full bg-[#0D1038] text-white shadow-sm sticky top-0 z-40 border-b border-slate-800">
-        <div className="w-full px-2.5 sm:px-6 lg:px-12 flex items-center justify-between overflow-x-auto no-scrollbar scroll-smooth">
-          <div className="flex items-center gap-1.5 sm:gap-2 py-1.5 sm:py-2">
+          {/* Center: Navigation Tabs */}
+          <nav className="flex items-center gap-1 sm:gap-1.5 overflow-x-auto no-scrollbar py-1">
             {[
-              { id: "dashboard", label: "Roster", fullLabel: "Programs & Roster", icon: <Users size={13} /> },
-              { id: "history", label: "History", fullLabel: "Upload History", icon: <Clock size={13} /> },
-              { id: "events", label: "Events", fullLabel: "Events & Gates", icon: <ScanLine size={13} /> },
-              { id: "campaigns", label: "Passes", fullLabel: "Email Passes", icon: <Mail size={13} /> },
-              { id: "settings", label: "Settings", fullLabel: "System Settings", icon: <Settings size={13} /> },
+              { id: "dashboard", label: "Roster", fullLabel: "Programs & Roster", icon: <Users size={14} /> },
+              { id: "history", label: "History", fullLabel: "Upload History", icon: <Clock size={14} /> },
+              { id: "events", label: "Events", fullLabel: "Events & Gates", icon: <ScanLine size={14} /> },
+              { id: "campaigns", label: "Passes", fullLabel: "Email Passes", icon: <Mail size={14} /> },
+              { id: "settings", label: "Settings", fullLabel: "System Settings", icon: <Settings size={14} /> },
             ].map((tab) => {
               const isActive = activeTab === tab.id;
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`px-3 sm:px-4 py-1.5 sm:py-2 text-[11px] sm:text-xs font-bold rounded-full flex items-center gap-1.5 transition-all whitespace-nowrap cursor-pointer shrink-0 ${
+                  className={`px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-[11px] sm:text-xs font-bold rounded-xl flex items-center gap-1.5 transition-all whitespace-nowrap cursor-pointer shrink-0 ${
                     isActive
-                      ? "bg-[#FFB800] text-black font-black shadow-xs"
-                      : "text-white/80 hover:bg-white/10 hover:text-white"
+                      ? "bg-[#FFB800] text-black font-black shadow-sm"
+                      : "text-slate-300 hover:text-white hover:bg-white/10"
                   }`}
                 >
                   {tab.icon}
-                  <span className="hidden sm:inline">{tab.fullLabel}</span>
-                  <span className="inline sm:hidden">{tab.label}</span>
+                  <span className="hidden md:inline">{tab.fullLabel}</span>
+                  <span className="inline md:hidden">{tab.label}</span>
                 </button>
               );
             })}
+          </nav>
+
+          {/* Right: Status, Refresh & Sign Out */}
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="hidden xl:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[0.68rem] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 tracking-wider">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span>Live Console</span>
+            </div>
+            
+            <button 
+              onClick={activeTab === "settings" ? fetchSettings : fetchAttendees} 
+              className="bg-white/10 hover:bg-white/15 text-slate-200 hover:text-white border border-white/15 rounded-xl px-2.5 py-1.5 sm:px-3 sm:py-1.5 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+              title="Refresh Data"
+            >
+              <RefreshCw size={12} />
+              <span className="hidden sm:inline">Refresh</span>
+            </button>
+            <button 
+              onClick={onLogout} 
+              className="bg-red-500/15 hover:bg-red-500/25 text-red-300 hover:text-red-200 border border-red-500/30 rounded-xl px-2.5 py-1.5 sm:px-3 sm:py-1.5 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+              title="Sign Out"
+            >
+              <LogOut size={12} /> 
+              <span className="hidden xs:inline">Sign Out</span>
+            </button>
           </div>
 
-          <div className="text-xs text-[#FFB800] font-bold hidden lg:flex items-center gap-2 shrink-0">
-            <span>● Official Event Console</span>
-          </div>
         </div>
-      </nav>
+      </header>
 
       {/* ── Main Workspace (Full Width & Perfectly Centered) ──────────── */}
       <main className="flex-1 w-full max-w-[1440px] mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pb-12">
@@ -962,37 +968,97 @@ export default function AdminDashboard({ onLogout }) {
           </div>
         ) : (
           <>
-        {/* Stats */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit,minmax(145px,1fr))",
-            gap: "0.875rem",
-            marginBottom: "1.5rem",
-          }}
-        >
+        {/* ── Operational Event Header & Quick Action Bar ──────────── */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 bg-white/90 backdrop-blur-md p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-[0_2px_12px_rgba(0,0,0,0.02)]">
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight m-0">
+                {activeEvent?.name || "Active Event Operations"}
+              </h1>
+              <span className="px-2.5 py-0.5 rounded-full text-[0.68rem] font-bold bg-[#1E2A78]/10 text-[#1E2A78] border border-[#1E2A78]/20">
+                {eventCheckpoints.length} Checkpoints
+              </span>
+              <span className="px-2.5 py-0.5 rounded-full text-[0.68rem] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                Active Session
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 mt-1 flex items-center gap-2 flex-wrap">
+              <span>Campus: Graphic Era Deemed to be University</span>
+              <span>•</span>
+              <span className="font-semibold text-slate-700">{attendees.length} Attendees Enrolled</span>
+            </p>
+          </div>
+
+          {/* Quick CTAs */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={() => setIsImportOpen(prev => !prev)}
+              className={`btn btn-sm text-xs font-bold rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-xs ${
+                isImportOpen 
+                  ? "bg-slate-900 text-white hover:bg-slate-800" 
+                  : "btn-geu-yellow"
+              }`}
+            >
+              <Upload size={14} />
+              <span>{isImportOpen ? "Close Importer" : "Import Excel Roster"}</span>
+            </button>
+            <button
+              onClick={() => setShowEmailConfig(prev => !prev)}
+              className="btn btn-sm btn-secondary text-xs font-bold rounded-xl flex items-center gap-1.5 cursor-pointer shadow-xs"
+            >
+              <Mail size={14} />
+              <span>Pass Delivery ({attendees.filter(a => !a.emailSent && a.email).length} Pending)</span>
+            </button>
+          </div>
+        </div>
+
+        {/* ── High-Density Executive Stat Cards ──────────────────────── */}
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 mb-6">
           <StatCard
-            label="Total"
+            label="Total Roster"
             value={stats.total}
-            color="var(--text-primary)"
-            icon={<Users size={16} />}
-            statColor="var(--brand)"
+            color="#1E2A78"
+            icon={<Users size={18} />}
+            statColor="#1E2A78"
+            subtitle="Registered Attendees"
+          />
+          <StatCard
+            label="Passes Dispatched"
+            value={attendees.filter(a => a.emailSent).length}
+            total={stats.total}
+            color="#059669"
+            icon={<Mail size={18} />}
+            statColor="#059669"
+            subtitle={`${stats.total > 0 ? Math.round((attendees.filter(a => a.emailSent).length / stats.total) * 100) : 0}% Delivered`}
           />
           {eventCheckpoints.map((cp, idx) => {
             const passed = attendees.filter(a => a.checkpointStatuses?.find(cs => cs.checkpointId === cp.id)?.status).length;
-            const colors = ["var(--green)", "var(--amber)", "var(--blue)", "var(--purple)", "var(--pink)"];
+            const colors = ["#0284C7", "#D97706", "#7C3AED", "#DB2777", "#059669"];
+            const cardColor = colors[idx % colors.length];
             return (
               <StatCard
                 key={cp.id}
                 label={cp.name}
                 value={passed}
                 total={stats.total}
-                color={colors[idx % colors.length]}
-                icon={<ScanLine size={16} />}
-                statColor={colors[idx % colors.length]}
+                color={cardColor}
+                icon={<ScanLine size={18} />}
+                statColor={cardColor}
+                subtitle={`${stats.total > 0 ? Math.round((passed / stats.total) * 100) : 0}% Admitted`}
               />
             );
           })}
+          {eventCheckpoints.length > 0 && (
+            <StatCard
+              label="Pending Admission"
+              value={Math.max(0, stats.total - attendees.filter(a => a.checkpointStatuses?.[0]?.status).length)}
+              total={stats.total}
+              color="#DC2626"
+              icon={<AlertCircle size={18} />}
+              statColor="#DC2626"
+              subtitle="Yet to enter gate"
+            />
+          )}
         </div>
 
         {/* Analytics Dashboard */}
@@ -1062,10 +1128,10 @@ export default function AdminDashboard({ onLogout }) {
           </div>
         )}
 
-        {/* Upload */}
-        {!activeCampaign && (
-          <div className="bg-white/95 backdrop-blur-xl rounded-2xl border border-slate-200/80 shadow-[0_4px_20px_rgba(0,0,0,0.03)] p-6 sm:p-7 mb-6">
-            <div className="flex items-center justify-between gap-3 mb-6 pb-4 border-b border-slate-100 flex-wrap">
+        {/* Bulk Import Attendee Roster (Collapsible Drawer) */}
+        {!activeCampaign && (isImportOpen || (attendees.length === 0 && step > 1)) && (
+          <div className="bg-white/95 backdrop-blur-xl rounded-2xl border border-slate-200/80 shadow-[0_8px_30px_rgba(0,0,0,0.04)] p-5 sm:p-6 mb-6 animate-fade-in">
+            <div className="flex items-center justify-between gap-3 mb-5 pb-4 border-b border-slate-100 flex-wrap">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#1E2A78] border border-blue-100 flex items-center justify-center font-bold shrink-0">
                   <Upload size={18} />
@@ -1080,28 +1146,39 @@ export default function AdminDashboard({ onLogout }) {
                 </div>
               </div>
 
-              {/* Step indicator */}
-              <div className="flex items-center gap-1.5 bg-slate-100/90 rounded-xl p-1 border border-slate-200/70">
-                {[
-                  { num: 1, label: "Upload" },
-                  { num: 2, label: "Map" },
-                  { num: 3, label: "Validate" },
-                  { num: 4, label: "Done" },
-                ].map((s) => (
-                  <div
-                    key={s.num}
-                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
-                      step === s.num
-                        ? "bg-[#0D1038] text-white shadow-xs"
-                        : step > s.num
-                        ? "bg-emerald-100 text-emerald-800"
-                        : "text-slate-400"
-                    }`}
-                  >
-                    <span>{step > s.num ? "✓" : s.num}</span>
-                    <span className="hidden sm:inline text-[0.7rem]">{s.label}</span>
-                  </div>
-                ))}
+              <div className="flex items-center gap-2">
+                {/* Step indicator */}
+                <div className="flex items-center gap-1 bg-slate-100/90 rounded-xl p-1 border border-slate-200/70">
+                  {[
+                    { num: 1, label: "Upload" },
+                    { num: 2, label: "Map" },
+                    { num: 3, label: "Validate" },
+                    { num: 4, label: "Done" },
+                  ].map((s) => (
+                    <div
+                      key={s.num}
+                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                        step === s.num
+                          ? "bg-[#0D1038] text-white shadow-xs"
+                          : step > s.num
+                          ? "bg-emerald-100 text-emerald-800"
+                          : "text-slate-400"
+                      }`}
+                    >
+                      <span>{step > s.num ? "✓" : s.num}</span>
+                      <span className="hidden sm:inline text-[0.7rem]">{s.label}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Close Button */}
+                <button
+                  onClick={() => { setIsImportOpen(false); resetState(); }}
+                  className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                  title="Close Importer"
+                >
+                  <X size={18} />
+                </button>
               </div>
             </div>
 
@@ -1114,22 +1191,22 @@ export default function AdminDashboard({ onLogout }) {
 
             {step === 1 && (
               <div>
-                <label className="block border-2 border-dashed border-slate-200 hover:border-blue-400 bg-slate-50/50 hover:bg-blue-50/20 rounded-2xl p-8 sm:p-12 text-center transition-all cursor-pointer group">
-                  <div className="w-14 h-14 rounded-2xl bg-white border border-slate-200 flex items-center justify-center mx-auto mb-3.5 text-[#1E2A78] group-hover:scale-105 group-hover:border-blue-300 transition-all shadow-xs">
+                <label className="block border-2 border-dashed border-slate-200 hover:border-blue-400 bg-slate-50/50 hover:bg-blue-50/20 rounded-2xl p-6 sm:p-8 text-center transition-all cursor-pointer group">
+                  <div className="w-12 h-12 rounded-xl bg-white border border-slate-200 flex items-center justify-center mx-auto mb-3 text-[#1E2A78] group-hover:scale-105 group-hover:border-blue-300 transition-all shadow-xs">
                     {loading ? (
-                      <Loader2 size={26} className="animate-spin text-blue-600" />
+                      <Loader2 size={24} className="animate-spin text-blue-600" />
                     ) : (
-                      <FileSpreadsheet size={26} />
+                      <FileSpreadsheet size={24} />
                     )}
                   </div>
-                  <h3 className="font-bold text-slate-900 text-base mb-1">
+                  <h3 className="font-bold text-slate-900 text-sm sm:text-base mb-1">
                     Upload Attendee Spreadsheet
                   </h3>
-                  <p className="text-slate-500 text-xs sm:text-sm max-w-md mx-auto mb-5 leading-relaxed">
+                  <p className="text-slate-500 text-xs max-w-md mx-auto mb-4 leading-relaxed">
                     Drop your Excel file (.xlsx, .xls) here or click to browse. Features automatic column detection for Name, Roll No, and Email.
                   </p>
-                  <span className="btn btn-geu-yellow font-bold text-xs sm:text-sm px-6 py-2.5 rounded-xl shadow-md cursor-pointer inline-flex items-center gap-2 pointer-events-none">
-                    <Upload size={16} /> Choose File
+                  <span className="btn btn-geu-yellow font-bold text-xs px-5 py-2 rounded-xl shadow-xs cursor-pointer inline-flex items-center gap-2 pointer-events-none">
+                    <Upload size={14} /> Choose Excel File
                   </span>
                   <input
                     type="file"
@@ -1335,11 +1412,12 @@ export default function AdminDashboard({ onLogout }) {
                     Upload Another
                   </button>
                   <button
-                    onClick={() =>
+                    onClick={() => {
+                      setIsImportOpen(false);
                       document
                         .getElementById("alist")
-                        ?.scrollIntoView({ behavior: "smooth" })
-                    }
+                        ?.scrollIntoView({ behavior: "smooth" });
+                    }}
                     className="btn btn-primary btn-sm"
                   >
                     View List ↓
@@ -1420,6 +1498,7 @@ export default function AdminDashboard({ onLogout }) {
             fetchAttendees={fetchAttendees}
             handleSendEmail={handleSendEmail}
             emailLoading={emailLoading}
+            onOpenImport={() => setIsImportOpen(true)}
           />
         </div>
         </>

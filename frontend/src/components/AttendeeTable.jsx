@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, X, Mail, Loader2, RefreshCw, Trash2, ChevronRight, SlidersHorizontal, CheckCircle2, UserCircle } from 'lucide-react';
+import { Search, X, Mail, Loader2, RefreshCw, Trash2, ChevronRight, SlidersHorizontal, CheckCircle2, UserCircle, Upload, FileSpreadsheet, Sparkles } from 'lucide-react';
 
 function StatusBadge({ done, doneLabel = "Done", pendingLabel = "Pending", time }) {
   return (
@@ -24,7 +24,8 @@ export default function AttendeeTable({
   filtered, stats, eventCheckpoints,
   searchTerm, setSearchTerm, sortOption, setSortOption,
   checkpointFilters, setCheckpointFilters, emailFilter, setEmailFilter,
-  handleClearAttendees, fetchAttendees, handleSendEmail, emailLoading
+  handleClearAttendees, fetchAttendees, handleSendEmail, emailLoading,
+  onOpenImport
 }) {
   const [selectedAttendee, setSelectedAttendee] = useState(null);
 
@@ -254,57 +255,91 @@ export default function AttendeeTable({
           <tbody className="divide-y divide-slate-100">
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={eventCheckpoints.length + 4} className="py-20 text-center">
-                  <div className="inline-flex flex-col items-center justify-center p-8 rounded-2xl bg-slate-50/80 border border-slate-200/80 max-w-sm mx-auto">
-                    <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 mb-3 shadow-2xs">
-                      <Search size={22} />
+                <td colSpan={eventCheckpoints.length + 4} className="py-16 text-center">
+                  {stats.total === 0 ? (
+                    <div className="inline-flex flex-col items-center justify-center p-8 rounded-2xl bg-slate-50/80 border border-slate-200/80 max-w-md mx-auto text-center animate-fade-in">
+                      <div className="w-14 h-14 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-[#1E2A78] mb-3 shadow-2xs">
+                        <FileSpreadsheet size={26} />
+                      </div>
+                      <p className="text-slate-900 font-bold text-base">No Attendees in Roster Yet</p>
+                      <p className="text-slate-500 text-xs mt-1 max-w-xs leading-relaxed">
+                        Upload an Excel spreadsheet with student details (Name, University Roll No, Email) to generate QR passes.
+                      </p>
+                      {onOpenImport && (
+                        <button
+                          onClick={onOpenImport}
+                          className="btn btn-geu-yellow font-bold text-xs px-5 py-2.5 rounded-xl shadow-xs cursor-pointer flex items-center gap-2 mt-4"
+                        >
+                          <Upload size={14} />
+                          <span>Import Excel Roster</span>
+                        </button>
+                      )}
                     </div>
-                    <p className="text-slate-700 font-bold text-sm">No student records found</p>
-                    <p className="text-slate-400 text-xs mt-1">Try changing your search query or reset the filters above.</p>
-                  </div>
+                  ) : (
+                    <div className="inline-flex flex-col items-center justify-center p-8 rounded-2xl bg-slate-50/80 border border-slate-200/80 max-w-sm mx-auto text-center animate-fade-in">
+                      <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 mb-3 shadow-2xs">
+                        <Search size={22} />
+                      </div>
+                      <p className="text-slate-700 font-bold text-sm">No matching student records</p>
+                      <p className="text-slate-400 text-xs mt-1">Try changing your search query or reset the filters above.</p>
+                      <button 
+                        className="btn btn-secondary btn-xs mt-3 text-slate-600 rounded-lg cursor-pointer"
+                        onClick={() => { setSearchTerm(""); setSortOption("upload"); setCheckpointFilters({}); setEmailFilter("all"); }}
+                      >
+                        Reset All Filters
+                      </button>
+                    </div>
+                  )}
                 </td>
               </tr>
             ) : (
               filtered.map((a) => (
                 <tr 
                   key={a.id} 
-                  className="hover:bg-blue-50/30 transition-colors cursor-pointer"
+                  className="hover:bg-blue-50/40 transition-colors cursor-pointer group"
                   onClick={() => setSelectedAttendee(a)}
                 >
-                  <td className="px-5 py-3">
-                    <p className="font-bold text-slate-900 text-xs sm:text-sm leading-tight mb-0.5">{a.name}</p>
-                    <span className="font-mono text-[0.68rem] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
-                      {a.roll}
-                    </span>
+                  <td className="px-5 py-3.5">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-slate-100 border border-slate-200/80 flex items-center justify-center font-bold text-slate-700 text-[0.68rem] shrink-0 group-hover:bg-blue-100 group-hover:text-blue-800 transition-colors shadow-2xs">
+                        {a.name ? a.name.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase() : "ST"}
+                      </div>
+                      <div>
+                        <p className="font-bold text-slate-900 text-xs sm:text-sm leading-tight mb-0.5 group-hover:text-[#1E2A78] transition-colors">{a.name}</p>
+                        <span className="font-mono text-[0.68rem] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
+                          {a.roll}
+                        </span>
+                      </div>
+                    </div>
                   </td>
-                  <td className="px-5 py-3">
+                  <td className="px-5 py-3.5">
                     <p className="text-xs text-slate-600 font-medium truncate max-w-[200px]">
                       {a.email || "-"}
                     </p>
                   </td>
-                  <td className="px-5 py-3 text-center">
+                  <td className="px-5 py-3.5 text-center">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[0.65rem] font-bold uppercase tracking-wider border ${
                       a.emailSent 
                         ? 'bg-emerald-50 text-emerald-800 border-emerald-300' 
                         : 'bg-amber-50 text-amber-800 border-amber-300'
                     }`}>
-                      {a.emailSent ? "Dispatched" : "Pending"}
+                      {a.emailSent ? "Dispatched ✓" : "Pending"}
                     </span>
                   </td>
                   {eventCheckpoints.map(cp => {
                     const status = getCheckpointStatus(a, cp.id);
                     return (
-                      <td key={cp.id} className="px-5 py-3 text-center">
+                      <td key={cp.id} className="px-5 py-3.5 text-center">
                         <StatusBadge done={status?.status} time={status?.scannedAt} />
                       </td>
                     );
                   })}
-                  <td className="px-5 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                  <td className="px-5 py-3.5 text-center" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-center gap-1.5">
                       <button
                         onClick={() => handleSendEmail(a.id)}
                         disabled={!a.email || emailLoading === a.id}
-                        className={`btn btn-xs rounded-lg cursor-pointer ${
+                        className={`btn btn-xs rounded-xl cursor-pointer ${
                           a.emailSent 
                             ? 'btn-secondary text-slate-700' 
                             : 'btn-geu-yellow'
@@ -315,10 +350,10 @@ export default function AttendeeTable({
                       </button>
                       <button 
                         onClick={() => setSelectedAttendee(a)}
-                        className="btn-icon w-6 h-6 rounded-lg bg-transparent hover:bg-slate-100 text-slate-400 hover:text-slate-800 border-none cursor-pointer"
+                        className="w-7 h-7 rounded-lg flex items-center justify-center bg-transparent hover:bg-slate-100 text-slate-400 hover:text-slate-800 transition-colors cursor-pointer"
                         title="View details"
                       >
-                        <ChevronRight size={14} />
+                        <ChevronRight size={15} />
                       </button>
                     </div>
                   </td>
