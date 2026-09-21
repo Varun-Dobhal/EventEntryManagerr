@@ -24,6 +24,7 @@ import {
   Settings,
   Filter,
   Trash2,
+  Plus,
 } from "lucide-react";
 import api from "../utils/api";
 import { useToast } from "../context/ToastContext";
