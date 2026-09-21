@@ -1,0 +1,5 @@
+{
+  "batchSize": 50,
+  "delayMs": 2000,
+  "maxRetries": 3
+}

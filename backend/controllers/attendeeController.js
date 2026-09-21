@@ -4,6 +4,7 @@ const archiver = require("archiver");
 const QRCode = require("qrcode");
 const { sendQrEmail } = require("../utils/email");
 const prisma = require("../prismaClient");
+const { getBatchSettings } = require("../utils/settingsHelper");
 
 exports.scanAttendee = async (req, res) => {
   const ip = req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "unknown";
@@ -507,7 +508,13 @@ exports.sendManualEmail = async (req, res) => {
 
 exports.startCampaign = async (req, res) => {
   try {
-    const { batchSize = 50, delayMs = 10000, providerName = "RESEND", eventId } = req.body;
+    const defaultSettings = getBatchSettings();
+    const { 
+      batchSize = defaultSettings.batchSize, 
+      delayMs = defaultSettings.delayMs, 
+      providerName = "RESEND", 
+      eventId 
+    } = req.body;
     if (!eventId) return res.status(400).json({ error: "eventId is required" });
 
     // Verify no running campaign for this event

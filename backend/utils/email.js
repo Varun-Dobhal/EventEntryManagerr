@@ -4,9 +4,7 @@ const nodemailer = require("nodemailer");
 const QRCode = require("qrcode");
 const prisma = require("../prismaClient");
 const { decryptJSON } = require("./crypto");
-
-const BULK_BATCH_SIZE = 20;
-const BATCH_DELAY_MS = 1500;
+const { getBatchSettings } = require("./settingsHelper");
 
 const DRIVE_LINK =
   "https://drive.google.com/file/d/1Ub73iPyrnTLPUwytr4GQV311u-7emDjd/view?usp=sharing";
@@ -349,7 +347,8 @@ const sendBulkQrEmails = async (
 ) => {
   const results = [];
 
-  console.log(`Starting bulk email sending to ${attendees.length} attendees`);
+  const { batchSize: BULK_BATCH_SIZE = 50, delayMs: BATCH_DELAY_MS = 2000 } = getBatchSettings();
+  console.log(`Starting bulk email sending to ${attendees.length} attendees (Batch size: ${BULK_BATCH_SIZE}, Delay: ${BATCH_DELAY_MS}ms)`);
 
   for (let i = 0; i < attendees.length; i += BULK_BATCH_SIZE) {
     const batch = attendees.slice(i, i + BULK_BATCH_SIZE);

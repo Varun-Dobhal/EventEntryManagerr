@@ -265,3 +265,48 @@ exports.getAuditLogs = async (req, res) => {
     res.status(500).json({ error: "Failed to fetch audit logs." });
   }
 };
+
+const { getBatchSettings, saveBatchSettings } = require("../utils/settingsHelper");
+
+exports.getBatchSettings = async (req, res) => {
+  try {
+    const settings = getBatchSettings();
+    res.json(settings);
+  } catch (error) {
+    console.error("Error fetching batch settings:", error);
+    res.status(500).json({ error: "Failed to fetch batch settings." });
+  }
+};
+
+exports.saveBatchSettings = async (req, res) => {
+  try {
+    const { batchSize, delayMs, maxRetries } = req.body;
+    
+    if (batchSize !== undefined && (isNaN(batchSize) || Number(batchSize) < 1 || Number(batchSize) > 500)) {
+      return res.status(400).json({ error: "Batch size must be a number between 1 and 500." });
+    }
+    if (delayMs !== undefined && (isNaN(delayMs) || Number(delayMs) < 100 || Number(delayMs) > 60000)) {
+      return res.status(400).json({ error: "Delay must be a number between 100ms and 60,000ms." });
+    }
+
+    const updated = saveBatchSettings({ batchSize, delayMs, maxRetries });
+
+    try {
+      await prisma.auditLog.create({
+        data: {
+          adminId: req.user?.id || null,
+          action: "UPDATED_BATCH_SETTINGS",
+          details: `BatchSize: ${updated.batchSize}, Delay: ${updated.delayMs}ms, MaxRetries: ${updated.maxRetries}`
+        }
+      });
+    } catch (auditErr) {
+      // Non-blocking
+    }
+
+    res.json({ message: "Batch settings saved successfully.", settings: updated });
+  } catch (error) {
+    console.error("Error saving batch settings:", error);
+    res.status(500).json({ error: "Failed to save batch settings." });
+  }
+};
+

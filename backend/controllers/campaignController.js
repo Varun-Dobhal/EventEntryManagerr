@@ -1,4 +1,5 @@
 const prisma = require("../prismaClient");
+const { getBatchSettings } = require("../utils/settingsHelper");
 
 exports.getTemplates = async (req, res) => {
   try {
@@ -80,13 +81,14 @@ exports.dispatchNow = async (req, res) => {
 
 exports.startCampaign = async (req, res) => {
   try {
+    const defaultSettings = getBatchSettings();
     const { 
       eventId, 
       name, 
       templateId, 
       scheduledAt, 
-      batchSize = 50, 
-      delayMs = 10000, 
+      batchSize = defaultSettings.batchSize, 
+      delayMs = defaultSettings.delayMs, 
       providerName = "RESEND",
       target = "all", // "all" or "pending"
     } = req.body;
