@@ -25,6 +25,7 @@ import {
   Filter,
   Trash2,
   Plus,
+  MailCheck,
 } from "lucide-react";
 import api from "../utils/api";
 import { useToast } from "../context/ToastContext";
@@ -37,6 +38,7 @@ import { GlobalFooter } from "../components/ui/GlobalFooter";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import AttendeeTable from "../components/AttendeeTable";
 import DashboardAnalytics from "../components/DashboardAnalytics";
+import MailSentRecords from "../components/MailSentRecords";
 
 function StatCard({ label, value, total, color, icon, statColor, subtitle, badge }) {
   const pct = total > 0 ? Math.round((value / total) * 100) : 0;
@@ -623,7 +625,7 @@ export default function AdminDashboard({ onLogout }) {
           <nav className="flex items-center gap-1 sm:gap-1.5 overflow-x-auto no-scrollbar py-1">
             {[
               { id: "dashboard", label: "Roster", fullLabel: "Programs & Roster", icon: <Users size={14} /> },
-              { id: "history", label: "History", fullLabel: "Upload History", icon: <Clock size={14} /> },
+              { id: "mail-sent", label: "Mail Sent", fullLabel: "Mail Sent", icon: <MailCheck size={14} /> },
               { id: "events", label: "Events", fullLabel: "Events & Gates", icon: <ScanLine size={14} /> },
               { id: "campaigns", label: "Passes", fullLabel: "Email Passes", icon: <Mail size={14} /> },
               { id: "settings", label: "Settings", fullLabel: "System Settings", icon: <Settings size={14} /> },
@@ -924,48 +926,18 @@ export default function AdminDashboard({ onLogout }) {
               </div>
             </div>
           </div>
-        ) : activeTab === "history" ? (
-          <div className="bg-white/95 backdrop-blur-xl rounded-2xl border border-slate-200/80 shadow-[0_4px_20px_rgba(0,0,0,0.03)] p-6 sm:p-7">
-            <div className="mb-4">
-              <h2 className="text-base font-bold text-slate-900 tracking-tight m-0">Upload &amp; Dataset History</h2>
-              <p className="text-xs text-slate-500 mt-0.5">View and restore previous attendee batch rosters</p>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200">
-                    <th className="px-4 py-3 text-[0.7rem] font-bold text-slate-500 uppercase tracking-wider">Event Name</th>
-                    <th className="px-4 py-3 text-[0.7rem] font-bold text-slate-500 uppercase tracking-wider">Date</th>
-                    <th className="px-4 py-3 text-[0.7rem] font-bold text-slate-500 uppercase tracking-wider text-center">Records</th>
-                    <th className="px-4 py-3 text-[0.7rem] font-bold text-slate-500 uppercase tracking-wider text-center">Status</th>
-                    <th className="px-4 py-3 text-[0.7rem] font-bold text-slate-500 uppercase tracking-wider text-center">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {datasets.length === 0 ? (
-                    <tr><td colSpan="5" className="text-center py-12 text-slate-400 font-medium">No previous uploads found.</td></tr>
-                  ) : datasets.map(ds => (
-                    <tr key={ds.id} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="px-4 py-3 font-bold text-slate-900">{ds.eventName}</td>
-                      <td className="px-4 py-3 text-slate-500">{new Date(ds.createdAt).toLocaleDateString()}</td>
-                      <td className="px-4 py-3 text-center font-bold text-slate-700">{ds.totalRecords}</td>
-                      <td className="px-4 py-3 text-center">
-                        {ds.isActive ? <span className="badge badge-green">Active</span> : <span className="badge badge-muted">Archived</span>}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {!ds.isActive && (
-                          <div className="flex items-center justify-center gap-1.5">
-                            <button onClick={() => handleRestoreDataset(ds.id)} className="btn btn-xs btn-geu-yellow rounded-lg cursor-pointer">Restore</button>
-                            <button onClick={() => handleDeleteDataset(ds.id)} className="btn btn-xs btn-secondary text-red-600 rounded-lg cursor-pointer">Delete</button>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+        ) : activeTab === "mail-sent" ? (
+          <MailSentRecords
+            attendees={attendees}
+            eventCheckpoints={eventCheckpoints}
+            activeEvent={activeEvent}
+            onResendEmail={handleSendEmail}
+            emailLoading={emailLoading}
+            fetchAttendees={fetchAttendees}
+            datasets={datasets}
+            onRestoreDataset={handleRestoreDataset}
+            onDeleteDataset={handleDeleteDataset}
+          />
         ) : (
           <>
         {/* ── Operational Event Header & Quick Action Bar ──────────── */}

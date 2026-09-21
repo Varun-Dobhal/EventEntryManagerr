@@ -459,6 +459,43 @@ exports.sendManualEmail = async (req, res) => {
     });
     await sendQrEmail(attendee, attendee.event, qrCodeDataUrl, message);
 
+    // Track delivery record in EmailJob for verifiable audit history
+    try {
+      let manualCampaign = await prisma.emailCampaign.findFirst({
+        where: { eventId: attendee.eventId, name: "Direct Pass Dispatches" }
+      });
+      if (!manualCampaign) {
+        manualCampaign = await prisma.emailCampaign.create({
+          data: {
+            name: "Direct Pass Dispatches",
+            eventId: attendee.eventId,
+            status: "COMPLETED",
+            totalCount: 1,
+            sentCount: 1
+          }
+        });
+      } else {
+        await prisma.emailCampaign.update({
+          where: { id: manualCampaign.id },
+          data: {
+            totalCount: { increment: 1 },
+            sentCount: { increment: 1 }
+          }
+        });
+      }
+
+      await prisma.emailJob.create({
+        data: {
+          campaignId: manualCampaign.id,
+          attendeeId: attendee.id,
+          status: "SENT",
+          deliveredAt: new Date()
+        }
+      });
+    } catch (jobErr) {
+      console.error("Failed to log EmailJob for manual send:", jobErr.message);
+    }
+
     return res.status(200).json({
       message: `QR Code sent to ${attendee.email}`,
     });
@@ -609,10 +646,41 @@ exports.getAllAttendees = async (req, res) => {
 
     const attendees = await prisma.attendee.findMany({
       where: { eventId: Number(eventId) },
+      include: {
+        checkpointStatuses: {
+          include: {
+            checkpoint: true
+          }
+        },
+        emailJobs: {
+          orderBy: { createdAt: "desc" },
+          include: {
+            campaign: {
+              select: {
+                id: true,
+                name: true
+              }
+            }
+          }
+        }
+      },
       orderBy: { createdAt: "desc" },
     });
 
-    return res.json(attendees);
+    const formatted = attendees.map((a) => {
+      const sentJob = a.emailJobs?.find((j) => j.status === "SENT");
+      const latestJob = a.emailJobs?.[0];
+      return {
+        ...a,
+        emailSent: Boolean(sentJob),
+        emailSentAt: sentJob?.deliveredAt || sentJob?.updatedAt || null,
+        emailStatus: sentJob ? "SENT" : (latestJob?.status || "PENDING"),
+        emailError: latestJob?.errorMessage || null,
+        emailHistory: a.emailJobs || []
+      };
+    });
+
+    return res.json(formatted);
   } catch (error) {
     console.error("Error fetching attendees:", error);
     return res.status(500).json({ error: "Failed to fetch attendees." });
