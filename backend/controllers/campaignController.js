@@ -64,6 +64,20 @@ exports.getCampaigns = async (req, res) => {
   }
 };
 
+exports.dispatchNow = async (req, res) => {
+  try {
+    const campaignId = parseInt(req.params.id);
+    const campaign = await prisma.emailCampaign.update({
+      where: { id: campaignId },
+      data: { status: "RUNNING", scheduledAt: null }
+    });
+    res.json({ message: "Campaign dispatch started immediately", campaign });
+  } catch (err) {
+    console.error("dispatchNow error:", err);
+    res.status(500).json({ error: "Failed to dispatch campaign" });
+  }
+};
+
 exports.startCampaign = async (req, res) => {
   try {
     const { 
@@ -79,16 +93,12 @@ exports.startCampaign = async (req, res) => {
 
     if (!eventId) return res.status(400).json({ error: "eventId is required" });
     
-    // Optional: check if a running campaign exists, though maybe we allow multiple scheduled/running now?
-    // Let's just create it.
-    const isScheduled = scheduledAt && new Date(scheduledAt) > new Date();
+    // Only schedule if scheduledAt is explicitly provided and more than 60 seconds in the future
+    const parsedScheduledDate = scheduledAt ? new Date(scheduledAt) : null;
+    const isScheduled = parsedScheduledDate && !isNaN(parsedScheduledDate.getTime()) && (parsedScheduledDate.getTime() - Date.now()) > 60000;
 
     const attendeeQuery = { eventId: Number(eventId), email: { not: null, not: "" } };
     if (target === "pending") {
-      // Find attendees who don't have a successful or pending job in ANY campaign for this event
-      // Or simply ones that are not sent. For simplicity, attendees where emailSent/etc is not true.
-      // Wait, currently attendee has no emailSent flag. We rely on jobs.
-      // Let's just find attendees who have NO successful email jobs for this event.
       attendeeQuery.emailJobs = {
         none: { status: { in: ["SENT", "PROCESSING", "PENDING"] } }
       };
@@ -106,7 +116,7 @@ exports.startCampaign = async (req, res) => {
           eventId: Number(eventId),
           name: name || `Campaign ${new Date().toLocaleString()}`,
           status: isScheduled ? "SCHEDULED" : "RUNNING",
-          scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
+          scheduledAt: isScheduled ? parsedScheduledDate : null,
           templateId: templateId ? Number(templateId) : null,
           totalCount: attendees.length,
           pendingCount: attendees.length,

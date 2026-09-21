@@ -83,7 +83,12 @@ export default function CampaignManagement({ activeEventId, onRedirectCleanup })
     e.preventDefault();
     setLoading(true);
     try {
-      await api.post(`/campaigns/start`, { ...campaignForm, eventId: activeEventId });
+      const scheduledIso = campaignForm?.scheduledAt ? new Date(campaignForm.scheduledAt).toISOString() : null;
+      await api.post(`/campaigns/start`, { 
+        ...campaignForm, 
+        scheduledAt: scheduledIso,
+        eventId: activeEventId 
+      });
       toast({ type: "success", message: "Campaign successfully initiated." });
       setCampaignForm(null);
       setActiveTab("monitor");
@@ -379,7 +384,23 @@ export default function CampaignManagement({ activeEventId, onRedirectCleanup })
                     </div>
 
                     <div className="flex flex-wrap gap-1.5 shrink-0">
-                      <button className="btn btn-sm btn-primary" onClick={() => setActiveConsoleId(camp.id)}>
+                      {camp.status === "SCHEDULED" && (
+                        <button 
+                          className="btn btn-sm bg-emerald-600 hover:bg-emerald-700 text-white font-bold cursor-pointer"
+                          onClick={async () => {
+                            try {
+                              await api.post(`/campaigns/${camp.id}/dispatch-now`);
+                              toast({ type: "success", message: "Dispatch started!" });
+                              fetchCampaigns();
+                            } catch(e) {
+                              toast({ type: "error", message: "Failed to dispatch" });
+                            }
+                          }}
+                        >
+                          <PlayCircle size={13} className="mr-1" /> Dispatch Now
+                        </button>
+                      )}
+                      <button className="btn btn-sm btn-primary cursor-pointer" onClick={() => setActiveConsoleId(camp.id)}>
                         <PlayCircle size={13} className="mr-1" /> Live Console
                       </button>
                       {camp.failedCount > 0 && (

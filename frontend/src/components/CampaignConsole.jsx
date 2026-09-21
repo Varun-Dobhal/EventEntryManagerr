@@ -106,7 +106,12 @@ export default function CampaignConsole({ campaignId, onClose, onRedirectCleanup
 
   const handleAction = async (action) => {
     try {
-      if (action === "pause") {
+      if (action === "dispatchNow") {
+        await api.post(`/campaigns/${campaignId}/dispatch-now`);
+        toast({ type: "success", message: "Dispatch started immediately!" });
+        const res = await api.get(`/campaigns/${campaignId}`);
+        setCampaign(res.data);
+      } else if (action === "pause") {
         await api.post(`/attendees/campaigns/${campaignId}/pause`);
         toast({ type: "success", message: "Campaign paused." });
       } else if (action === "resume") {
@@ -147,7 +152,7 @@ export default function CampaignConsole({ campaignId, onClose, onRedirectCleanup
       {/* ── Console Header ─────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded border border-slate-300 shadow-xs">
         <div className="flex items-center gap-3">
-          <button className="btn btn-secondary btn-sm" onClick={onClose} title="Back to campaigns">
+          <button className="btn btn-secondary btn-sm cursor-pointer" onClick={onClose} title="Back to campaigns">
             <ArrowLeft size={16} /> <span>Back</span>
           </button>
           <div>
@@ -161,13 +166,32 @@ export default function CampaignConsole({ campaignId, onClose, onRedirectCleanup
           </div>
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {campaign.status === "SCHEDULED" && (
+            <button 
+              className="btn btn-sm bg-emerald-600 hover:bg-emerald-700 text-white font-bold flex items-center gap-1.5 shadow-xs cursor-pointer" 
+              onClick={() => handleAction("dispatchNow")}
+            >
+              <Play size={13} />
+              <span>Dispatch Now</span>
+            </button>
+          )}
+          {campaign.status === "RUNNING" && (
+            <button className="btn btn-secondary btn-sm text-amber-800 border-amber-300 hover:bg-amber-50 cursor-pointer" onClick={() => handleAction("pause")}>
+              <Pause size={13} className="mr-1" /> Pause
+            </button>
+          )}
+          {campaign.status === "PAUSED" && (
+            <button className="btn btn-secondary btn-sm text-emerald-800 border-emerald-300 hover:bg-emerald-50 cursor-pointer" onClick={() => handleAction("resume")}>
+              <Play size={13} className="mr-1" /> Resume
+            </button>
+          )}
           {campaign.failedCount > 0 && (
-            <button className="btn btn-secondary btn-sm text-red-700 border-red-300 hover:bg-red-50" onClick={() => handleAction("retry")}>
+            <button className="btn btn-secondary btn-sm text-red-700 border-red-300 hover:bg-red-50 cursor-pointer" onClick={() => handleAction("retry")}>
               <RefreshCw size={13} className="mr-1" /> Retry {campaign.failedCount} Failed
             </button>
           )}
-          <button className="btn btn-secondary btn-sm text-red-700 border-red-300 hover:bg-red-50" onClick={() => onRedirectCleanup({ type: 'campaign', id: campaignId, name: campaign.name, text: '' })}>
+          <button className="btn btn-secondary btn-sm text-red-700 border-red-300 hover:bg-red-50 cursor-pointer" onClick={() => onRedirectCleanup({ type: 'campaign', id: campaignId, name: campaign.name, text: '' })}>
             <Trash2 size={13} className="mr-1" /> Delete Campaign
           </button>
         </div>

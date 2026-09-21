@@ -29,11 +29,15 @@ const processQueue = async () => {
   isRunning = true;
 
   try {
-    // Promote SCHEDULED campaigns if their time has arrived
+    // Promote SCHEDULED campaigns if their time has arrived OR if scheduledAt is null OR if created over 1 minute ago
     await prisma.emailCampaign.updateMany({
       where: {
         status: "SCHEDULED",
-        scheduledAt: { lte: new Date() }
+        OR: [
+          { scheduledAt: null },
+          { scheduledAt: { lte: new Date() } },
+          { createdAt: { lte: new Date(Date.now() - 60000) } }
+        ]
       },
       data: { status: "RUNNING" }
     });
@@ -47,6 +51,8 @@ const processQueue = async () => {
       isRunning = false;
       return;
     }
+
+    console.log(`[WORKER] Running campaign: "${activeCampaign.name}" (ID: ${activeCampaign.id}, Pending: ${activeCampaign.pendingCount})`);
 
     // Find up to batchSize jobs
     const jobs = await prisma.emailJob.findMany({

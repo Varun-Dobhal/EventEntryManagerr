@@ -18,6 +18,7 @@ router.get("/", campaignController.getCampaigns);
 router.get("/:id", campaignController.getCampaign);
 router.get("/:id/recent-jobs", campaignController.getRecentJobs);
 router.post("/start", campaignController.startCampaign);
+router.post("/:id/dispatch-now", campaignController.dispatchNow);
 router.post("/:id/retry", campaignController.retryFailed);
 router.delete("/:id", campaignController.deleteCampaign);
 
