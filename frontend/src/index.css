@@ -79,8 +79,13 @@ body {
 }
 
 .app-bg {
-  background-color: var(--bg);
   min-height: 100vh;
+  background-color: #F8FAFC;
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(219, 234, 254, 0.45) 0px, transparent 45%),
+    radial-gradient(at 40% 100%, rgba(254, 205, 211, 0.35) 0px, transparent 45%),
+    radial-gradient(at 100% 100%, rgba(243, 232, 255, 0.35) 0px, transparent 45%);
+  background-attachment: fixed;
 }
 
 /* ── Graphic Era Custom Component Styles ──────────────────────────── */

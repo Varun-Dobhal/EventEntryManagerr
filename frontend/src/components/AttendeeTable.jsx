@@ -84,7 +84,7 @@ export default function AttendeeTable({
                     <button
                       onClick={() => handleSendEmail(selectedAttendee.id)}
                       disabled={!selectedAttendee.email || emailLoading === selectedAttendee.id}
-                      className="btn btn-sm btn-geu-yellow rounded-xl cursor-pointer"
+                      className="btn btn-sm bg-[#1E2A78] hover:bg-[#151e56] text-white rounded-xl cursor-pointer shadow-xs text-xs font-semibold"
                     >
                       {emailLoading === selectedAttendee.id ? <Loader2 size={13} className="animate-spin" /> : <Mail size={13} />}
                       <span>{selectedAttendee.emailSent ? 'Resend Pass' : 'Send Pass'}</span>
@@ -268,7 +268,7 @@ export default function AttendeeTable({
                       {onOpenImport && (
                         <button
                           onClick={onOpenImport}
-                          className="btn btn-geu-yellow font-bold text-xs px-5 py-2.5 rounded-xl shadow-xs cursor-pointer flex items-center gap-2 mt-4"
+                          className="btn bg-[#1E2A78] hover:bg-[#151e56] text-white font-semibold text-xs px-5 py-2.5 rounded-xl shadow-xs cursor-pointer flex items-center gap-2 mt-4"
                         >
                           <Upload size={14} />
                           <span>Import Excel Roster</span>
@@ -339,10 +339,10 @@ export default function AttendeeTable({
                       <button
                         onClick={() => handleSendEmail(a.id)}
                         disabled={!a.email || emailLoading === a.id}
-                        className={`btn btn-xs rounded-xl cursor-pointer ${
+                        className={`btn btn-xs rounded-xl cursor-pointer text-[0.68rem] font-semibold transition-all ${
                           a.emailSent 
-                            ? 'btn-secondary text-slate-700' 
-                            : 'btn-geu-yellow'
+                            ? 'bg-slate-100 hover:bg-slate-200/80 text-slate-700 border border-slate-200/80' 
+                            : 'bg-[#1E2A78] hover:bg-[#151e56] text-white shadow-2xs'
                         }`}
                       >
                         {emailLoading === a.id ? <Loader2 size={11} className="animate-spin" /> : <Mail size={11} />}

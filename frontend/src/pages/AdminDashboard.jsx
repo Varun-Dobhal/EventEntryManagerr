@@ -26,6 +26,7 @@ import {
   Trash2,
   Plus,
   MailCheck,
+  Bell,
 } from "lucide-react";
 import api from "../utils/api";
 import { useToast } from "../context/ToastContext";
@@ -40,48 +41,81 @@ import AttendeeTable from "../components/AttendeeTable";
 import DashboardAnalytics from "../components/DashboardAnalytics";
 import MailSentRecords from "../components/MailSentRecords";
 
-function StatCard({ label, value, total, color, icon, statColor, subtitle, badge }) {
+function StatCard({ label, value, total, color, icon, statColor, subtitle, badge, theme = "neutral" }) {
   const pct = total > 0 ? Math.round((value / total) * 100) : 0;
-  const accentColor = statColor || color || "#1E2A78";
+  
+  // Clean, soft pastel theme variants matching Image 2 reference exactly
+  const themes = {
+    neutral: {
+      card: "bg-white border-slate-200/90",
+      label: "text-slate-500",
+      value: "text-slate-900",
+      accent: "#1E2A78",
+      barBg: "bg-slate-100",
+    },
+    blue: {
+      card: "bg-[#EBF3FE]/70 border-blue-200/80",
+      label: "text-blue-600",
+      value: "text-blue-700",
+      accent: "#2563EB",
+      barBg: "bg-blue-100",
+    },
+    green: {
+      card: "bg-[#ECFDF5]/70 border-emerald-200/80",
+      label: "text-emerald-600",
+      value: "text-emerald-700",
+      accent: "#059669",
+      barBg: "bg-emerald-100",
+    },
+    amber: {
+      card: "bg-[#FFFBEB]/70 border-amber-200/80",
+      label: "text-amber-600",
+      value: "text-amber-700",
+      accent: "#D97706",
+      barBg: "bg-amber-100",
+    },
+    rose: {
+      card: "bg-[#FEF2F2]/70 border-rose-200/80",
+      label: "text-rose-600",
+      value: "text-rose-700",
+      accent: "#DC2626",
+      barBg: "bg-rose-100",
+    },
+    purple: {
+      card: "bg-[#FAF5FF]/70 border-purple-200/80",
+      label: "text-purple-600",
+      value: "text-purple-700",
+      accent: "#7C3AED",
+      barBg: "bg-purple-100",
+    }
+  };
+
+  const t = themes[theme] || themes.neutral;
+  const accentColor = statColor || color || t.accent;
+
   return (
-    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-[0_2px_8px_rgba(0,0,0,0.02)] hover:border-slate-300 transition-all p-4.5 flex flex-col justify-between group">
-      <div className="flex items-start justify-between gap-2 mb-2.5">
-        <div>
-          <p className="text-[0.68rem] font-bold text-slate-400 uppercase tracking-wider mb-1">{label}</p>
-          <div className="flex items-baseline gap-1.5">
-            <h3 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight leading-none">{value}</h3>
-            {total !== undefined && total > 0 && (
-              <span className="text-xs font-semibold text-slate-400">/ {total}</span>
-            )}
-          </div>
-        </div>
-        <div 
-          className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-105" 
-          style={{ 
-            backgroundColor: `${accentColor}12`, 
-            color: accentColor 
-          }}
-        >
-          {icon}
-        </div>
+    <div className={`rounded-2xl border p-3.5 sm:p-4 flex flex-col justify-between transition-all shadow-[0_1px_3px_rgba(0,0,0,0.02)] text-center ${t.card}`}>
+      <div>
+        <p className={`text-[0.65rem] sm:text-[0.68rem] font-bold uppercase tracking-wider mb-1 truncate ${t.label}`}>
+          {label}
+        </p>
+        <h3 className={`text-2xl sm:text-3xl font-black tracking-tight leading-none my-1.5 ${t.value}`}>
+          {value}
+        </h3>
       </div>
       
-      <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
-        <span className="text-[0.7rem] text-slate-500 font-medium truncate">
-          {subtitle || (total > 0 ? `${pct}% of roster` : "Registered Attendees")}
+      <div className="pt-2 border-t border-black/5 flex items-center justify-between text-[0.68rem] text-slate-500 font-medium">
+        <span className="truncate mx-auto">
+          {subtitle || (total > 0 ? `${pct}% of roster` : "Registered")}
         </span>
-        {badge ? (
-          <span className="text-[0.68rem] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700">
-            {badge}
-          </span>
-        ) : total > 0 ? (
-          <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden shrink-0 ml-2">
+        {total > 0 && (
+          <div className={`w-12 h-1 ${t.barBg} rounded-full overflow-hidden shrink-0 ml-1.5`}>
             <div 
               className="h-full rounded-full transition-all duration-500 ease-out" 
               style={{ width: `${pct}%`, backgroundColor: accentColor }} 
             />
           </div>
-        ) : null}
+        )}
       </div>
     </div>
   );
@@ -646,29 +680,51 @@ export default function AdminDashboard({ onLogout }) {
             })}
           </nav>
 
-          {/* Right: Status, Refresh & Sign Out */}
-          <div className="flex items-center gap-2 shrink-0">
-            <div className="hidden xl:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[0.68rem] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80 tracking-wider">
+          {/* Right: Actions & Profile Pill (Image 1 Style) */}
+          <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+            {/* Live Console Indicator */}
+            <div className="hidden 2xl:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[0.68rem] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80 tracking-wider">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               <span>Live Console</span>
             </div>
             
+            {/* Circular Bell Button */}
+            <button 
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-full border border-slate-200/80 bg-white hover:bg-slate-50 flex items-center justify-center text-slate-500 hover:text-slate-800 transition-colors shadow-2xs cursor-pointer"
+              title="Notifications"
+            >
+              <Bell size={14} />
+            </button>
+
+            {/* Circular Refresh Button */}
             <button 
               onClick={activeTab === "settings" ? fetchSettings : fetchAttendees} 
-              className="bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 border border-slate-200/90 rounded-xl px-2.5 py-1.5 sm:px-3 sm:py-1.5 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-full border border-slate-200/80 bg-white hover:bg-slate-50 flex items-center justify-center text-slate-500 hover:text-slate-800 transition-colors shadow-2xs cursor-pointer"
               title="Refresh Data"
             >
-              <RefreshCw size={12} />
-              <span className="hidden sm:inline">Refresh</span>
+              <RefreshCw size={13} />
             </button>
-            <button 
-              onClick={onLogout} 
-              className="bg-red-50 hover:bg-red-100/80 text-red-600 hover:text-red-700 border border-red-200/80 rounded-xl px-2.5 py-1.5 sm:px-3 sm:py-1.5 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
-              title="Sign Out"
-            >
-              <LogOut size={12} /> 
-              <span className="hidden xs:inline">Sign Out</span>
-            </button>
+
+            {/* User Profile Pill */}
+            <div className="flex items-center gap-1.5 pl-1 border-l border-slate-200/80">
+              <div className="flex items-center gap-2 bg-slate-50/80 hover:bg-slate-100/80 border border-slate-200/80 rounded-full pl-1 pr-2 sm:pr-3 py-1 transition-all">
+                <div className="w-7 h-7 rounded-full bg-[#1E2A78] text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs relative">
+                  <span>A</span>
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 absolute -bottom-0.5 -right-0.5 ring-2 ring-white" />
+                </div>
+                <div className="hidden lg:flex flex-col text-left">
+                  <span className="text-[0.72rem] font-bold text-slate-800 leading-tight">Admin Console</span>
+                  <span className="text-[0.55rem] font-semibold text-slate-400 uppercase tracking-wider leading-none mt-0.5">FACULTY / EVENT INCHARGE</span>
+                </div>
+              </div>
+              <button 
+                onClick={onLogout} 
+                className="text-slate-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-xl transition-colors cursor-pointer"
+                title="Sign Out"
+              >
+                <LogOut size={16} /> 
+              </button>
+            </div>
           </div>
 
         </div>
@@ -959,60 +1015,54 @@ export default function AdminDashboard({ onLogout }) {
           </div>
 
           {/* Quick CTAs */}
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2.5 flex-wrap">
             <button
               onClick={() => setIsImportOpen(prev => !prev)}
-              className={`btn btn-sm text-xs font-bold rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-xs ${
+              className={`btn btn-sm text-xs font-semibold rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-xs ${
                 isImportOpen 
                   ? "bg-slate-900 text-white hover:bg-slate-800" 
-                  : "btn-geu-yellow"
+                  : "bg-[#1E2A78] hover:bg-[#16205e] text-white"
               }`}
             >
-              <Upload size={14} />
+              <Upload size={13} />
               <span>{isImportOpen ? "Close Importer" : "Import Excel Roster"}</span>
             </button>
             <button
               onClick={() => setShowEmailConfig(prev => !prev)}
-              className="btn btn-sm btn-secondary text-xs font-bold rounded-xl flex items-center gap-1.5 cursor-pointer shadow-xs"
+              className="btn btn-sm bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/90 text-xs font-semibold rounded-xl flex items-center gap-1.5 cursor-pointer shadow-2xs"
             >
-              <Mail size={14} />
+              <Mail size={13} />
               <span>Pass Delivery ({attendees.filter(a => !a.emailSent && a.email).length} Pending)</span>
             </button>
           </div>
         </div>
 
-        {/* ── High-Density Executive Stat Cards ──────────────────────── */}
+        {/* ── High-Density Executive Stat Cards (Image 2 PBL Style) ──── */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5 sm:gap-4 mb-6">
           <StatCard
-            label="Total Roster"
+            label="Total Attendees"
             value={stats.total}
-            color="#1E2A78"
-            icon={<Users size={18} />}
-            statColor="#1E2A78"
-            subtitle="Registered Attendees"
+            theme="neutral"
+            subtitle="Registered in Roster"
           />
           <StatCard
             label="Passes Dispatched"
             value={attendees.filter(a => a.emailSent).length}
             total={stats.total}
-            color="#059669"
-            icon={<Mail size={18} />}
-            statColor="#059669"
+            theme="blue"
             subtitle={`${stats.total > 0 ? Math.round((attendees.filter(a => a.emailSent).length / stats.total) * 100) : 0}% Delivered`}
           />
           {eventCheckpoints.map((cp, idx) => {
             const passed = attendees.filter(a => a.checkpointStatuses?.find(cs => cs.checkpointId === cp.id)?.status).length;
-            const colors = ["#0284C7", "#D97706", "#7C3AED", "#DB2777", "#059669"];
-            const cardColor = colors[idx % colors.length];
+            const themes = ["green", "purple", "amber", "blue"];
+            const cardTheme = themes[idx % themes.length];
             return (
               <StatCard
                 key={cp.id}
                 label={cp.name}
                 value={passed}
                 total={stats.total}
-                color={cardColor}
-                icon={<ScanLine size={18} />}
-                statColor={cardColor}
+                theme={cardTheme}
                 subtitle={`${stats.total > 0 ? Math.round((passed / stats.total) * 100) : 0}% Admitted`}
               />
             );
@@ -1022,9 +1072,7 @@ export default function AdminDashboard({ onLogout }) {
               label="Pending Admission"
               value={Math.max(0, stats.total - attendees.filter(a => a.checkpointStatuses?.[0]?.status).length)}
               total={stats.total}
-              color="#DC2626"
-              icon={<AlertCircle size={18} />}
-              statColor="#DC2626"
+              theme="rose"
               subtitle="Yet to enter gate"
             />
           )}
@@ -1438,9 +1486,9 @@ export default function AdminDashboard({ onLogout }) {
                       activeCampaign || campaignActionLoading ||
                       !attendees.filter((a) => !a.emailSent && a.email).length
                     }
-                    className="btn btn-geu-yellow font-bold text-xs sm:text-sm px-6 py-2.5 rounded-xl shadow-md cursor-pointer flex items-center gap-2"
+                    className="btn bg-[#1E2A78] hover:bg-[#151e56] text-white font-semibold text-xs sm:text-sm px-6 py-2.5 rounded-xl shadow-xs cursor-pointer flex items-center gap-2"
                   >
-                    <Send size={15} /> 
+                    <Send size={14} /> 
                     <span>{activeCampaign ? "Campaign Active" : "Start Email Campaign"}</span>
                   </button>
                 </div>
