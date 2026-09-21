@@ -84,7 +84,7 @@ function App() {
                 <Route
                   path="/"
                   element={
-                    !role ? <LandingPage /> : <Navigate to={role === "ADMIN" ? "/admin" : "/volunteer"} replace />
+                    !role ? <Login setRole={setRole} /> : <Navigate to={role === "ADMIN" ? "/admin" : "/volunteer"} replace />
                   }
                 />
                 <Route
@@ -101,7 +101,7 @@ function App() {
                     ) : role ? (
                       <Navigate to="/volunteer" replace />
                     ) : (
-                      <Navigate to="/login" replace />
+                      <Navigate to="/" replace />
                     )
                   }
                 />
@@ -113,7 +113,7 @@ function App() {
                     ) : role === "ADMIN" ? (
                       <Navigate to="/admin" replace />
                     ) : (
-                      <Navigate to="/login" replace />
+                      <Navigate to="/" replace />
                     )
                   }
                 />
