@@ -144,6 +144,14 @@ const sendQrEmail = async (attendee, event, qrCodeDataUrl, customMessage = "", t
       return { success: false, email: attendee.email };
     }
 
+    // Support flexible signature if called as (attendee, qrCodeDataUrl, customMessage)
+    let actualEvent = event;
+    let actualMsg = customMessage;
+    if (typeof event === "string" && !actualMsg) {
+      actualMsg = qrCodeDataUrl || "";
+      actualEvent = attendee.event || null;
+    }
+
     const { provider, instance } = await getProvider();
 
     // 1. Generate high-resolution, high-contrast QR PNG buffer optimized for fast camera scans
@@ -359,7 +367,7 @@ const sendBulkQrEmails = async (
       batch.map(async (attendee) => {
         try {
           const qrCodeDataUrl = await qrGeneratorFunction(attendee);
-          return await sendQrEmail(attendee, qrCodeDataUrl, customMessage);
+          return await sendQrEmail(attendee, attendee.event || null, qrCodeDataUrl, customMessage);
         } catch (err) {
           console.error(
             `[QR_GENERATION_FAILED] ${attendee.email}`,

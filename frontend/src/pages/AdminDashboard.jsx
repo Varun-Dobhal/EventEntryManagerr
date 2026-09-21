@@ -515,7 +515,8 @@ export default function AdminDashboard({ onLogout }) {
         batchSize: Number(batchSettings.batchSize) || 50,
         delayMs: Number(batchSettings.delayMs) || 2000,
         providerName: activeProv?.name || "RESEND",
-        eventId: activeEventId
+        eventId: activeEventId,
+        customMessage: customMessage || undefined
       });
       toast({ type: "success", message: "Campaign started successfully!" });
       await fetchActiveCampaign();

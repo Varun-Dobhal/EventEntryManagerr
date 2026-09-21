@@ -7,21 +7,17 @@ let workerTimer = null;
 
 const WORKER_INTERVAL_MS = 2000;
 
-// Provider specific overrides for rate limits (Delay per batch)
+// Provider specific cooldown delay (respects user-configured delayMs with safety bounds)
 const getProviderDelay = (provider, batchSize, requestedDelay) => {
-  if (provider.name === "GOOGLE") {
-    // Max 10 per sec, let's do 1.5s per email to be very safe
-    return Math.max(requestedDelay, batchSize * 1500); 
+  const parsed = Number(requestedDelay);
+  if (!isNaN(parsed) && parsed >= 500) {
+    return parsed;
   }
-  if (provider.name === "AWS_SES") {
-    // SES is typically 14/sec. Let's do 100ms per email to be safe.
-    return Math.max(requestedDelay, batchSize * 100);
-  }
-  if (provider.name === "RESEND") {
-    // Resend free tier allows 2 requests per second. Let's do 550ms per email.
-    return Math.max(requestedDelay, batchSize * 550);
-  }
-  return requestedDelay; 
+  // Safe provider defaults if unconfigured
+  if (provider?.name === "GOOGLE") return 3000;
+  if (provider?.name === "AWS_SES") return 1000;
+  if (provider?.name === "RESEND") return 2000;
+  return 2000;
 };
 
 const processQueue = async () => {
@@ -105,7 +101,7 @@ const processQueue = async () => {
         if (result.success) {
           await prisma.emailJob.update({
             where: { id: job.id },
-            data: { status: "SENT" }
+            data: { status: "SENT", deliveredAt: new Date() }
           });
           successCount++;
         } else {

@@ -513,7 +513,8 @@ exports.startCampaign = async (req, res) => {
       batchSize = defaultSettings.batchSize, 
       delayMs = defaultSettings.delayMs, 
       providerName = "RESEND", 
-      eventId 
+      eventId,
+      target = "pending"
     } = req.body;
     if (!eventId) return res.status(400).json({ error: "eventId is required" });
 
@@ -525,12 +526,24 @@ exports.startCampaign = async (req, res) => {
       return res.status(400).json({ error: "A campaign is already running for this event." });
     }
 
+    const attendeeQuery = { 
+      eventId: Number(eventId), 
+      email: { not: null, not: "" } 
+    };
+
+    // By default, target only attendees who haven't already received their pass
+    if (target !== "all") {
+      attendeeQuery.emailJobs = {
+        none: { status: { in: ["SENT", "PROCESSING", "PENDING"] } }
+      };
+    }
+
     const attendees = await prisma.attendee.findMany({
-      where: { eventId: Number(eventId), email: { not: null, not: "" } }
+      where: attendeeQuery
     });
 
     if (attendees.length === 0) {
-      return res.status(400).json({ error: "No attendees with emails found in active dataset." });
+      return res.status(400).json({ error: "No pending attendees with valid email addresses found." });
     }
 
     const campaign = await prisma.$transaction(async (tx) => {
@@ -903,17 +916,9 @@ exports.createManualAttendee = async (req, res) => {
         });
 
         await sendQrEmail(newAttendee, event, qrCodeDataUrl, customMessage);
-
-        await prisma.attendee.update({
-          where: { id: newAttendee.id },
-          data: {
-            emailSent: true,
-            emailSentAt: new Date(),
-          }
-        });
         emailSentResult = true;
 
-        // Log into EmailJob for tracking
+        // Log into EmailJob for tracking and display in Mail Sent list
         try {
           let manualCampaign = await prisma.emailCampaign.findFirst({
             where: { eventId: Number(eventId), name: "Direct Pass Dispatches" }
@@ -942,9 +947,8 @@ exports.createManualAttendee = async (req, res) => {
             data: {
               campaignId: manualCampaign.id,
               attendeeId: newAttendee.id,
-              recipientEmail: cleanEmail,
               status: "SENT",
-              sentAt: new Date()
+              deliveredAt: new Date()
             }
           });
         } catch (jobErr) {
