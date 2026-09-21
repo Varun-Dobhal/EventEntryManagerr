@@ -28,6 +28,17 @@ export default function AttendeeTable({
   onOpenImport
 }) {
   const [selectedAttendee, setSelectedAttendee] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 50;
+
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, sortOption, checkpointFilters, emailFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const startIndex = (safeCurrentPage - 1) * pageSize;
+  const paginatedAttendees = filtered.slice(startIndex, startIndex + pageSize);
 
   const getCheckpointStatus = (attendee, cpId) => {
     return attendee.checkpointStatuses?.find(cs => cs.checkpointId === cpId);
@@ -283,7 +294,7 @@ export default function AttendeeTable({
                 </td>
               </tr>
             ) : (
-              filtered.map((a) => (
+              paginatedAttendees.map((a) => (
                 <tr 
                   key={a.id} 
                   className="hover:bg-blue-50/40 transition-colors cursor-pointer group"
@@ -353,6 +364,36 @@ export default function AttendeeTable({
           </tbody>
         </table>
       </div>
+
+      {/* ── Table Pagination Bar ──────────────────────────────────── */}
+      {filtered.length > pageSize && (
+        <div className="px-6 py-3.5 bg-slate-50 border-t border-slate-200/80 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600">
+          <div>
+            Showing <span className="font-bold text-slate-800">{startIndex + 1}</span> to{" "}
+            <span className="font-bold text-slate-800">{Math.min(startIndex + pageSize, filtered.length)}</span> of{" "}
+            <span className="font-bold text-slate-800">{filtered.length}</span> students
+          </div>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={safeCurrentPage <= 1}
+              className="px-3 py-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed font-semibold text-slate-700 transition-colors"
+            >
+              Previous
+            </button>
+            <div className="px-2 font-mono text-slate-500 font-semibold">
+              Page {safeCurrentPage} of {totalPages}
+            </div>
+            <button
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={safeCurrentPage >= totalPages}
+              className="px-3 py-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed font-semibold text-slate-700 transition-colors"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

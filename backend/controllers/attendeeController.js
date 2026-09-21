@@ -350,32 +350,41 @@ exports.uploadExcel = async (req, res) => {
       outputData.push(outRow);
     }
 
-    // Deactivate previous datasets
+    // Deactivate previous datasets for this event
     await prisma.uploadDataset.updateMany({
-      where: { isActive: true },
+      where: { eventId: Number(eventId), isActive: true },
       data: { isActive: false }
     });
 
-    // Create new dataset
-    const      dataset = await prisma.uploadDataset.create({
-        data: {
-          eventName,
-          eventId: Number(eventId),
-          totalRecords: 0,
-          validRecords: 0,
-          isActive: false, 
-          uploadedById: req.user?.userId || null,
-        },
-      });
+    // Create new dataset with accurate record counts
+    const dataset = await prisma.uploadDataset.create({
+      data: {
+        eventName,
+        eventId: Number(eventId),
+        totalRecords: parsedData.length,
+        validRecords: validRecordsCount,
+        isActive: true, 
+        uploadedById: req.user?.id || req.user?.userId || null,
+      },
+    });
 
     // Add datasetId to new attendees
-    const attendeesToCreate = newAttendees.map(a => ({ ...a, datasetId: dataset.id, eventId: Number(eventId) }));
+    const attendeesToCreate = newAttendees.map((a) => ({
+      ...a,
+      datasetId: dataset.id,
+      eventId: Number(eventId),
+    }));
 
     if (attendeesToCreate.length > 0) {
-      await prisma.attendee.createMany({
-        data: attendeesToCreate,
-        skipDuplicates: true,
-      });
+      // Chunk database insertions in batches of 500 to keep queries fast and avoid timeout/limits
+      const CHUNK_SIZE = 500;
+      for (let i = 0; i < attendeesToCreate.length; i += CHUNK_SIZE) {
+        const chunk = attendeesToCreate.slice(i, i + CHUNK_SIZE);
+        await prisma.attendee.createMany({
+          data: chunk,
+          skipDuplicates: true,
+        });
+      }
     }
 
     const outSheet = xlsx.utils.json_to_sheet(outputData);
@@ -393,7 +402,7 @@ exports.uploadExcel = async (req, res) => {
     );
     res.setHeader("Content-Type", "application/zip");
 
-    const archive = archiver("zip", { zlib: { level: 9 } });
+    const archive = archiver("zip", { zlib: { level: 1 } });
 
     archive.on("error", (err) => {
       console.error("Archiver error:", err);
@@ -405,21 +414,42 @@ exports.uploadExcel = async (req, res) => {
     archive.pipe(res);
     archive.append(excelBuffer, { name: "processed_attendees.xlsx" });
 
-    const qrBuffers = await Promise.all(
-      newAttendees.map(async (attendee) => ({
-        name: `qrs/${attendee.roll}.png`,
-        buffer: await QRCode.toBuffer(attendee.qrLink, {
-          type: "png",
-          margin: 3,
-          width: 380,
-          errorCorrectionLevel: "M",
-          color: { dark: "#000000", light: "#FFFFFF" },
-        }),
-      })),
-    );
+    // For smaller rosters (<= 50), include individual QR PNGs in qrs/
+    // For large rosters (e.g. 2,000+ students), generating thousands of PNGs in memory crashes the Node server with 502/OOM
+    // Instead, all verified tokens & QR links are in processed_attendees.xlsx, and passes are emailed via the Email Passes tab
+    if (newAttendees.length <= 50) {
+      for (const attendee of newAttendees) {
+        try {
+          const qrBuffer = await QRCode.toBuffer(attendee.qrLink, {
+            type: "png",
+            margin: 2,
+            width: 280,
+            errorCorrectionLevel: "M",
+            color: { dark: "#000000", light: "#FFFFFF" },
+          });
+          archive.append(qrBuffer, { name: `qrs/${attendee.roll}.png` });
+        } catch (qrErr) {
+          console.error(`Error generating QR for ${attendee.roll}:`, qrErr);
+        }
+      }
+    } else {
+      const summaryText = `Graphic Era Event Entry Portal
+Roster Import Confirmation
+==================================================
+Event Name: ${eventName}
+Total Records in File: ${parsedData.length}
+Valid Attendees Added: ${validRecordsCount}
 
-    for (const qr of qrBuffers) {
-      archive.append(qr.buffer, { name: qr.name });
+All ${validRecordsCount} attendees have been imported into the portal database with individual unique verification tokens and QR links.
+
+NEXT STEPS:
+1. Open the "Email Passes" tab in the Event Entry Portal.
+2. Choose or customize your event entry pass template.
+3. Launch the automated email dispatch campaign to send passes directly to all student emails.
+
+Each attendee's unique Token and Online QR Pass link are also included in the "processed_attendees.xlsx" spreadsheet in this ZIP.
+`;
+      archive.append(summaryText, { name: "ROSTER_IMPORT_SUMMARY.txt" });
     }
 
     await archive.finalize();
