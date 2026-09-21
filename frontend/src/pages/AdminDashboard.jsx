@@ -739,16 +739,68 @@ export default function AdminDashboard({ onLogout }) {
               {settingsProvider === "AWS_SES" && (
                 <div className="space-y-4 max-w-xl mb-5">
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Access Key ID</label>
-                    <input type="password" className="input w-full bg-white border border-slate-200 rounded-xl text-xs sm:text-sm shadow-2xs" value={settingsCreds.accessKey || ""} onChange={(e) => setSettingsCreds({ ...settingsCreds, accessKey: e.target.value })} />
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      Access Key ID / SMTP Username
+                    </label>
+                    <input 
+                      type="text" 
+                      className="input w-full bg-white border border-slate-200 rounded-xl text-xs sm:text-sm shadow-2xs font-mono" 
+                      placeholder="e.g. AKIA..." 
+                      value={settingsCreds.accessKey || ""} 
+                      onChange={(e) => setSettingsCreds({ ...settingsCreds, accessKey: e.target.value.trim() })} 
+                    />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Secret Access Key</label>
-                    <input type="password" className="input w-full bg-white border border-slate-200 rounded-xl text-xs sm:text-sm shadow-2xs" value={settingsCreds.secretKey || ""} onChange={(e) => setSettingsCreds({ ...settingsCreds, secretKey: e.target.value })} />
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      Secret Access Key / SES SMTP Password
+                    </label>
+                    <input 
+                      type="password" 
+                      className="input w-full bg-white border border-slate-200 rounded-xl text-xs sm:text-sm shadow-2xs" 
+                      placeholder="40-char IAM Secret or 44-char SMTP Password" 
+                      value={settingsCreds.secretKey || ""} 
+                      onChange={(e) => setSettingsCreds({ ...settingsCreds, secretKey: e.target.value.trim() })} 
+                    />
+                    <span className="text-[0.68rem] text-slate-400 mt-1 block">
+                      Supports both IAM Secret Access Key and generated SES SMTP Password.
+                    </span>
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Region</label>
-                    <input type="text" className="input w-full bg-white border border-slate-200 rounded-xl text-xs sm:text-sm shadow-2xs" placeholder="e.g. us-east-1" value={settingsCreds.region || ""} onChange={(e) => setSettingsCreds({ ...settingsCreds, region: e.target.value })} />
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      AWS Region
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <select
+                        className="input select w-full bg-white border border-slate-200 rounded-xl text-xs shadow-2xs"
+                        value={["ap-south-1", "us-east-1", "us-east-2", "us-west-2", "eu-west-1", "eu-central-1", "ap-southeast-1"].includes(settingsCreds.region) ? settingsCreds.region : (settingsCreds.region ? "custom" : "ap-south-1")}
+                        onChange={(e) => {
+                          if (e.target.value !== "custom") {
+                            setSettingsCreds({ ...settingsCreds, region: e.target.value });
+                          } else {
+                            setSettingsCreds({ ...settingsCreds, region: "" });
+                          }
+                        }}
+                      >
+                        <option value="ap-south-1">Asia Pacific (Mumbai) - ap-south-1</option>
+                        <option value="us-east-1">US East (N. Virginia) - us-east-1</option>
+                        <option value="us-east-2">US East (Ohio) - us-east-2</option>
+                        <option value="us-west-2">US West (Oregon) - us-west-2</option>
+                        <option value="eu-west-1">Europe (Ireland) - eu-west-1</option>
+                        <option value="eu-central-1">Europe (Frankfurt) - eu-central-1</option>
+                        <option value="ap-southeast-1">Asia Pacific (Singapore) - ap-southeast-1</option>
+                        <option value="custom">Other / Custom Region...</option>
+                      </select>
+                      <input 
+                        type="text" 
+                        className="input w-full bg-white border border-slate-200 rounded-xl text-xs shadow-2xs font-mono" 
+                        placeholder="Region code (e.g. ap-south-1)" 
+                        value={settingsCreds.region !== undefined ? settingsCreds.region : "ap-south-1"} 
+                        onChange={(e) => setSettingsCreds({ ...settingsCreds, region: e.target.value.trim().toLowerCase() })} 
+                      />
+                    </div>
+                    <span className="text-[0.68rem] text-slate-400 mt-1 block">
+                      Must match the AWS Region where your SES identity exists.
+                    </span>
                   </div>
                 </div>
               )}
@@ -786,9 +838,12 @@ export default function AdminDashboard({ onLogout }) {
                 <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Current Active Configuration</h3>
                 <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
                   {providers.filter(p => p.isActive).map(p => (
-                    <div key={p.id} className="space-y-1 text-xs">
+                    <div key={p.id} className="space-y-1.5 text-xs">
                       <p className="text-slate-700"><strong>Provider:</strong> {p.name}</p>
                       <p className="text-slate-700"><strong>Sender:</strong> {p.senderEmail}</p>
+                      {p.fields?.region && (
+                        <p className="text-slate-700"><strong>AWS Region:</strong> <code className="px-1.5 py-0.5 bg-slate-200/70 rounded text-slate-800 font-mono text-[0.72rem]">{p.fields.region}</code></p>
+                      )}
                       <p className="text-slate-700"><strong>Status:</strong> <span className="badge badge-green ml-1">Connected &amp; Active</span></p>
                     </div>
                   ))}

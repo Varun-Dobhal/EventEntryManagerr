@@ -13,28 +13,72 @@ const DRIVE_LINK =
 let cachedProvider = null;
 let providerInstance = null;
 
-// Calculates AWS SES SMTP password from an IAM Secret Access Key
-function calculateSesSmtpPassword(secretAccessKey) {
+// Calculates AWS SES SMTP password from an IAM Secret Access Key using official AWS SigV4
+function calculateSesSmtpPassword(secretAccessKey, region = "us-east-1") {
   if (!secretAccessKey) return "";
+  const cleanKey = String(secretAccessKey).trim();
+  const cleanRegion = String(region || "us-east-1").trim().toLowerCase();
+
   // If already an AWS SES SMTP password (44-char base64 starting with B or A), use as is
-  if (secretAccessKey.length === 44 && (secretAccessKey.startsWith("B") || secretAccessKey.startsWith("A"))) {
-    return secretAccessKey;
+  if (cleanKey.length === 44 && (cleanKey.startsWith("B") || cleanKey.startsWith("A"))) {
+    return cleanKey;
   }
+
+  const DATE = "11111111";
+  const SERVICE = "ses";
+  const MESSAGE = "SendRawEmail";
+  const TERMINAL = "aws4_request";
+  const VERSION = 0x04;
+
+  const sign = (key, msg) =>
+    crypto.createHmac("sha256", key).update(msg, "utf8").digest();
+
   try {
-    const MESSAGE = "SendRawEmail";
-    const VERSION = 0x02;
-    const signature = crypto
-      .createHmac("sha256", secretAccessKey)
-      .update(MESSAGE)
-      .digest();
-    const signatureWithVersion = Buffer.concat([
+    const kDate = sign(Buffer.from("AWS4" + cleanKey, "utf8"), DATE);
+    const kRegion = sign(kDate, cleanRegion);
+    const kService = sign(kRegion, SERVICE);
+    const kTerminal = sign(kService, TERMINAL);
+    const signature = sign(kTerminal, MESSAGE);
+
+    const signatureAndVersion = Buffer.concat([
       Buffer.from([VERSION]),
       signature,
     ]);
-    return signatureWithVersion.toString("base64");
+    return signatureAndVersion.toString("base64");
+  } catch (e) {
+    return cleanKey;
+  }
+}
+
+function calculateSesSmtpPasswordV2(secretAccessKey) {
+  if (!secretAccessKey) return "";
+  try {
+    const cleanKey = String(secretAccessKey).trim();
+    const MESSAGE = "SendRawEmail";
+    const VERSION = 0x02;
+    const signature = crypto
+      .createHmac("sha256", cleanKey)
+      .update(MESSAGE)
+      .digest();
+    return Buffer.concat([Buffer.from([VERSION]), signature]).toString("base64");
   } catch (e) {
     return secretAccessKey;
   }
+}
+
+function createSesTransport(accessKey, password, region = "us-east-1") {
+  const cleanRegion = String(region || "us-east-1").trim().toLowerCase();
+  return nodemailer.createTransport({
+    host: `email-smtp.${cleanRegion}.amazonaws.com`,
+    port: 465,
+    secure: true,
+    auth: {
+      user: String(accessKey).trim(),
+      pass: String(password).trim(),
+    },
+    connectionTimeout: 10000,
+    greetingTimeout: 5000,
+  });
 }
 
 const getProvider = async () => {
@@ -69,25 +113,11 @@ const getProvider = async () => {
   } else if (provider.name === "AWS_SES") {
     const accessKey = credentials.accessKey?.trim();
     const rawSecret = credentials.secretKey?.trim();
-    const region = credentials.region?.trim() || "us-east-1";
+    const region = (credentials.region?.trim() || "us-east-1").toLowerCase();
 
-    // Support both raw 40-char IAM Secret Key and generated 44-char SES SMTP Password
-    let smtpPassword = rawSecret;
-    if (rawSecret && rawSecret.length === 40 && !rawSecret.startsWith("B")) {
-      smtpPassword = calculateSesSmtpPassword(rawSecret);
-    }
-
-    instance = nodemailer.createTransport({
-      host: `email-smtp.${region}.amazonaws.com`,
-      port: 465,
-      secure: true,
-      auth: {
-        user: accessKey,
-        pass: smtpPassword,
-      },
-      connectionTimeout: 10000,
-      greetingTimeout: 5000,
-    });
+    // Support both raw 40-char IAM Secret Key (SigV4) and generated 44-char SES SMTP Password
+    const smtpPassword = calculateSesSmtpPassword(rawSecret, region);
+    instance = createSesTransport(accessKey, smtpPassword, region);
   } else if (provider.name === "SMTP") {
     instance = nodemailer.createTransport({
       host: credentials.host?.trim(),
@@ -267,5 +297,8 @@ BULK EMAIL COMPLETED
 module.exports = {
   sendQrEmail,
   sendBulkQrEmails,
-  getProvider
+  getProvider,
+  calculateSesSmtpPassword,
+  calculateSesSmtpPasswordV2,
+  createSesTransport
 };

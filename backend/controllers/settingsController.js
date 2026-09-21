@@ -1,6 +1,11 @@
 const prisma = require("../prismaClient");
 const { encryptJSON, decryptJSON } = require("../utils/crypto");
-const { getProvider } = require("../utils/email");
+const { 
+  getProvider, 
+  calculateSesSmtpPassword, 
+  calculateSesSmtpPasswordV2, 
+  createSesTransport 
+} = require("../utils/email");
 
 exports.getProviders = async (req, res) => {
   try {
@@ -8,13 +13,17 @@ exports.getProviders = async (req, res) => {
       orderBy: { id: "asc" },
     });
     
-    // Mask credentials before sending to UI
+    // Mask credentials before sending to UI, keeping non-secret config visible
     const maskedProviders = providers.map(p => {
       let fields = {};
       try {
         const creds = decryptJSON(p.credentials);
         Object.keys(creds).forEach(k => {
-          fields[k] = creds[k] ? "********" : "";
+          if (k === "region" || k === "host" || k === "port") {
+            fields[k] = creds[k]; // Safe non-secret configuration metadata
+          } else {
+            fields[k] = creds[k] ? "********" : "";
+          }
         });
       } catch (e) {
          fields = { error: "Failed to decrypt" };
@@ -135,15 +144,75 @@ exports.testConnection = async (req, res) => {
 
     // For Nodemailer transports (AWS_SES, SMTP, GOOGLE)
     // 1. Verify SMTP connection authentication
-    if (instance && typeof instance.verify === "function") {
+    if (provider.name === "AWS_SES") {
+      const credentials = decryptJSON(provider.credentials);
+      const accessKey = credentials.accessKey?.trim();
+      const rawSecret = credentials.secretKey?.trim();
+      const region = (credentials.region?.trim() || "us-east-1").toLowerCase();
+
+      // Test candidates in priority order:
+      // 1. SigV4 calculated password for configured region
+      // 2. Direct rawSecret (if already an AWS SES SMTP password)
+      // 3. SigV4 for ap-south-1 (Mumbai) if configured was us-east-1 (very common for Indian accounts)
+      // 4. Legacy SigV2
+      const candidates = [
+        { label: `SigV4 (${region})`, pass: calculateSesSmtpPassword(rawSecret, region), reg: region },
+        { label: `Direct Password (${region})`, pass: rawSecret, reg: region },
+      ];
+
+      if (region === "us-east-1") {
+        candidates.push({ 
+          label: "SigV4 (ap-south-1 Mumbai)", 
+          pass: calculateSesSmtpPassword(rawSecret, "ap-south-1"), 
+          reg: "ap-south-1" 
+        });
+      }
+
+      candidates.push({ 
+        label: "Legacy SigV2", 
+        pass: calculateSesSmtpPasswordV2(rawSecret), 
+        reg: region 
+      });
+
+      let workingTransport = null;
+      let lastError = null;
+      const seen = new Set();
+
+      for (const cand of candidates) {
+        if (!cand.pass) continue;
+        const key = `${cand.reg}:${cand.pass}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+
+        try {
+          const testTrans = createSesTransport(accessKey, cand.pass, cand.reg);
+          await testTrans.verify();
+          workingTransport = testTrans;
+          instance = testTrans; // Use the working transport for the test email
+          break;
+        } catch (err) {
+          lastError = err;
+        }
+      }
+
+      if (!workingTransport) {
+        console.error("AWS SES verification failed across candidates:", lastError);
+        let errorMsg = lastError?.message || "AWS SES Authentication Failed (535)";
+        if (errorMsg.includes("535") || errorMsg.includes("Authentication Credentials Invalid")) {
+          errorMsg = `AWS SES Authentication Failed (535): Invalid credentials for region "${region}".\n\n` +
+            `Please check:\n` +
+            `1. Region: In AWS SES, check if your region is "ap-south-1" (Asia Pacific - Mumbai) or another region.\n` +
+            `2. IAM Permissions: Ensure your IAM user has the 'AmazonSESFullAccess' policy attached.\n` +
+            `3. Recommended: Go to AWS Console -> Amazon SES -> SMTP Settings -> click "Create SMTP credentials" and enter the generated SMTP Username and Password.`;
+        }
+        return res.status(400).json({ error: errorMsg });
+      }
+    } else if (instance && typeof instance.verify === "function") {
       try {
         await instance.verify();
       } catch (verifyErr) {
         console.error("SMTP verify error:", verifyErr);
         let errorMsg = verifyErr.message || "SMTP Verification Failed";
-        if (errorMsg.includes("535") || errorMsg.includes("Authentication Credentials Invalid")) {
-          errorMsg = "AWS SES Authentication Failed (535): Invalid credentials. Please verify your Access Key ID and Secret Access Key / SES SMTP password.";
-        }
         return res.status(400).json({ error: errorMsg });
       }
     }
