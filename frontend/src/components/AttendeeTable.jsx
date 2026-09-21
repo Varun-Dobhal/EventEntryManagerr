@@ -34,16 +34,16 @@ export default function AttendeeTable({
   };
 
   return (
-    <div className="bg-white rounded-xl border border-[#E5EAF2] shadow-[0_2px_10px_rgba(15,23,42,0.04)] overflow-hidden relative">
+    <div className="bg-white rounded-2xl border border-slate-200/90 shadow-[0_2px_12px_rgba(15,23,42,0.03)] overflow-hidden relative">
       
       {/* ── Slide-out Details Drawer ───────────────────────────────── */}
       <div className={`fixed inset-y-0 right-0 w-full sm:w-96 bg-white border-l border-slate-200 shadow-2xl transition-transform duration-300 z-50 flex flex-col ${selectedAttendee ? 'translate-x-0' : 'translate-x-full'}`}>
         {selectedAttendee && (
           <>
-            <div className="p-5 bg-[#1E2A78] text-white flex items-center justify-between border-b border-white/10">
+            <div className="p-5 bg-[#2563EB] text-white flex items-center justify-between border-b border-white/10">
               <div>
                 <h3 className="font-bold text-base tracking-tight">Student Details</h3>
-                <p className="text-xs text-blue-200 font-mono mt-0.5">Roll: {selectedAttendee.roll}</p>
+                <p className="text-xs text-blue-100 font-mono mt-0.5">Roll: {selectedAttendee.roll}</p>
               </div>
               <button 
                 onClick={() => setSelectedAttendee(null)} 
@@ -126,7 +126,7 @@ export default function AttendeeTable({
       </div>
 
       {/* ── Table Toolbar ──────────────────────────────────────────── */}
-      <div className="px-5 py-4 border-b border-slate-100 flex items-center flex-wrap gap-4 justify-between bg-white">
+      <div className="px-6 py-4.5 border-b border-slate-100 flex items-center flex-wrap gap-4 justify-between bg-white">
         <div className="flex items-center gap-2.5">
           <span className="text-sm font-bold text-slate-800">
             Registered Attendees
@@ -135,17 +135,17 @@ export default function AttendeeTable({
             {filtered.length} of {stats.total} Attendees
           </span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           <button 
             onClick={handleClearAttendees} 
-            className="btn btn-sm bg-white hover:bg-red-50 text-red-600 border border-red-200 rounded-xl cursor-pointer text-xs font-semibold" 
+            className="btn btn-sm bg-white hover:bg-red-50 text-red-600 border border-red-200 rounded-xl cursor-pointer text-xs font-semibold px-3 py-1.5" 
             title="Clear all registered attendees for this event"
           >
             <Trash2 size={13} className="mr-1" /> Clear Roster
           </button>
           <button 
             onClick={fetchAttendees} 
-            className="btn btn-sm bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl cursor-pointer text-xs font-semibold"
+            className="btn btn-sm bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl cursor-pointer text-xs font-semibold px-3 py-1.5"
           >
             <RefreshCw size={13} className="mr-1" /> Refresh
           </button>
@@ -153,12 +153,12 @@ export default function AttendeeTable({
       </div>
 
       {/* ── Search & Filters Ribbon ────────────────────────────────── */}
-      <div className="p-3.5 border-b border-slate-100 flex gap-3 flex-wrap bg-slate-50/60 items-center justify-between">
+      <div className="px-6 py-4 border-b border-slate-100 flex gap-3.5 flex-wrap bg-slate-50/50 items-center justify-between">
         <div className="relative w-full sm:w-auto flex-grow max-w-md">
           <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
           <input
-            className="input w-full bg-white border-slate-200/90 focus:border-blue-500 rounded-xl text-xs sm:text-sm transition-all shadow-2xs"
-            style={{ paddingLeft: '2.5rem', paddingTop: '0.6rem', paddingBottom: '0.6rem' }}
+            className="input w-full h-10 bg-white border-slate-200/90 focus:border-blue-500 rounded-xl text-xs sm:text-sm transition-all shadow-2xs"
+            style={{ paddingLeft: '2.5rem' }}
             type="text"
             placeholder="Search by student name or roll number..."
             value={searchTerm}
@@ -166,8 +166,8 @@ export default function AttendeeTable({
           />
         </div>
         
-        <div className="flex items-center gap-2 overflow-x-auto">
-          <div className="flex items-center bg-white rounded-xl border border-slate-200/90 px-2.5 py-1.5 shadow-2xs shrink-0">
+        <div className="flex items-center gap-2.5 overflow-x-auto">
+          <div className="flex items-center bg-white rounded-xl border border-slate-200/90 px-3 py-1.5 h-10 shadow-2xs shrink-0">
             <SlidersHorizontal size={13} className="text-slate-400 mr-2" />
             <select 
               className="bg-transparent text-xs text-slate-700 font-semibold focus:outline-none cursor-pointer" 
@@ -180,7 +180,7 @@ export default function AttendeeTable({
             </select>
           </div>
 
-          <div className="flex items-center bg-white rounded-xl border border-slate-200/90 px-2.5 py-1.5 shadow-2xs shrink-0">
+          <div className="flex items-center bg-white rounded-xl border border-slate-200/90 px-3 py-1.5 h-10 shadow-2xs shrink-0">
             <select 
               className="bg-transparent text-xs text-slate-700 font-semibold focus:outline-none cursor-pointer" 
               value={emailFilter} 
@@ -193,7 +193,7 @@ export default function AttendeeTable({
           </div>
 
           {eventCheckpoints.map(cp => (
-            <div key={cp.id} className="flex items-center bg-white rounded-xl border border-slate-200/90 px-2.5 py-1.5 shadow-2xs shrink-0">
+            <div key={cp.id} className="flex items-center bg-white rounded-xl border border-slate-200/90 px-3 py-1.5 h-10 shadow-2xs shrink-0">
               <select
                 className="bg-transparent text-xs text-slate-700 font-semibold focus:outline-none cursor-pointer max-w-[130px] truncate"
                 value={checkpointFilters[cp.id] || "all"}
@@ -208,7 +208,7 @@ export default function AttendeeTable({
           
           {(searchTerm || sortOption !== "upload" || emailFilter !== "all" || Object.values(checkpointFilters).some(v => v !== "all")) && (
             <button 
-              className="btn btn-secondary btn-xs text-slate-600 hover:text-slate-900 rounded-lg shrink-0 cursor-pointer" 
+              className="btn btn-secondary btn-xs text-slate-600 hover:text-slate-900 rounded-lg shrink-0 cursor-pointer h-10 px-3" 
               onClick={() => { setSearchTerm(""); setSortOption("upload"); setCheckpointFilters({}); setEmailFilter("all"); }}
               title="Reset all filters"
             >
@@ -223,21 +223,21 @@ export default function AttendeeTable({
         <table className="w-full text-left border-collapse text-xs">
           <thead>
             <tr className="bg-slate-50/80 border-b border-slate-200/80">
-              <th className="px-5 py-3 text-[0.7rem] font-bold text-slate-500 uppercase tracking-wider">
+              <th className="px-6 py-3.5 text-[0.7rem] font-bold text-slate-500 uppercase tracking-wider">
                 Student Name &amp; Roll
               </th>
-              <th className="px-5 py-3 text-[0.7rem] font-bold text-slate-500 uppercase tracking-wider">
+              <th className="px-6 py-3.5 text-[0.7rem] font-bold text-slate-500 uppercase tracking-wider">
                 Email Address
               </th>
-              <th className="px-5 py-3 text-[0.7rem] font-bold text-slate-500 uppercase tracking-wider text-center">
+              <th className="px-6 py-3.5 text-[0.7rem] font-bold text-slate-500 uppercase tracking-wider text-center">
                 QR Pass
               </th>
               {eventCheckpoints.map(c => (
-                <th key={c.id} className="px-5 py-3 text-[0.7rem] font-bold text-slate-500 uppercase tracking-wider text-center">
+                <th key={c.id} className="px-6 py-3.5 text-[0.7rem] font-bold text-slate-500 uppercase tracking-wider text-center">
                   {c.name}
                 </th>
               ))}
-              <th className="px-5 py-3 text-[0.7rem] font-bold text-slate-500 uppercase tracking-wider text-center">
+              <th className="px-6 py-3.5 text-[0.7rem] font-bold text-slate-500 uppercase tracking-wider text-center">
                 Actions
               </th>
             </tr>
@@ -245,20 +245,20 @@ export default function AttendeeTable({
           <tbody className="divide-y divide-slate-100">
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={eventCheckpoints.length + 4} className="py-16 text-center">
+                <td colSpan={eventCheckpoints.length + 4} className="py-20 text-center">
                   {stats.total === 0 ? (
-                    <div className="inline-flex flex-col items-center justify-center p-8 rounded-2xl bg-slate-50/80 border border-slate-200/80 max-w-md mx-auto text-center animate-fade-in">
-                      <div className="w-14 h-14 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-[#1E2A78] mb-3 shadow-2xs">
-                        <FileSpreadsheet size={26} />
+                    <div className="inline-flex flex-col items-center justify-center p-10 rounded-2xl bg-slate-50/60 border border-slate-200/80 max-w-md mx-auto text-center animate-fade-in">
+                      <div className="w-16 h-16 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-[#2563EB] mb-4 shadow-2xs">
+                        <FileSpreadsheet size={28} />
                       </div>
                       <p className="text-slate-900 font-bold text-base">No Attendees in Roster Yet</p>
-                      <p className="text-slate-500 text-xs mt-1 max-w-xs leading-relaxed">
+                      <p className="text-slate-500 text-xs mt-1.5 max-w-xs leading-relaxed">
                         Upload an Excel spreadsheet with student details (Name, University Roll No, Email) to generate QR passes.
                       </p>
                       {onOpenImport && (
                         <button
                           onClick={onOpenImport}
-                          className="btn bg-[#1E2A78] hover:bg-[#151e56] text-white font-semibold text-xs px-5 py-2.5 rounded-xl shadow-xs cursor-pointer flex items-center gap-2 mt-4"
+                          className="btn bg-[#2563EB] hover:bg-blue-700 text-white font-semibold text-xs px-5 py-2.5 rounded-xl shadow-xs cursor-pointer flex items-center gap-2 mt-5"
                         >
                           <Upload size={14} />
                           <span>Import Excel Roster</span>
@@ -266,14 +266,14 @@ export default function AttendeeTable({
                       )}
                     </div>
                   ) : (
-                    <div className="inline-flex flex-col items-center justify-center p-8 rounded-2xl bg-slate-50/80 border border-slate-200/80 max-w-sm mx-auto text-center animate-fade-in">
-                      <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 mb-3 shadow-2xs">
-                        <Search size={22} />
+                    <div className="inline-flex flex-col items-center justify-center p-10 rounded-2xl bg-slate-50/60 border border-slate-200/80 max-w-sm mx-auto text-center animate-fade-in">
+                      <div className="w-14 h-14 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 mb-4 shadow-2xs">
+                        <Search size={24} />
                       </div>
                       <p className="text-slate-700 font-bold text-sm">No matching student records</p>
                       <p className="text-slate-400 text-xs mt-1">Try changing your search query or reset the filters above.</p>
                       <button 
-                        className="btn btn-secondary btn-xs mt-3 text-slate-600 rounded-lg cursor-pointer"
+                        className="btn btn-secondary btn-xs mt-4 text-slate-600 rounded-lg cursor-pointer px-3 py-1.5"
                         onClick={() => { setSearchTerm(""); setSortOption("upload"); setCheckpointFilters({}); setEmailFilter("all"); }}
                       >
                         Reset All Filters
@@ -289,25 +289,25 @@ export default function AttendeeTable({
                   className="hover:bg-blue-50/40 transition-colors cursor-pointer group"
                   onClick={() => setSelectedAttendee(a)}
                 >
-                  <td className="px-5 py-3.5">
-                    <div className="flex items-center gap-2.5">
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-xl bg-slate-100 border border-slate-200/80 flex items-center justify-center font-bold text-slate-700 text-[0.68rem] shrink-0 group-hover:bg-blue-100 group-hover:text-blue-800 transition-colors shadow-2xs">
                         {a.name ? a.name.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase() : "ST"}
                       </div>
                       <div>
-                        <p className="font-bold text-slate-900 text-xs sm:text-sm leading-tight mb-0.5 group-hover:text-[#1E2A78] transition-colors">{a.name}</p>
+                        <p className="font-bold text-slate-900 text-xs sm:text-sm leading-tight mb-0.5 group-hover:text-[#2563EB] transition-colors">{a.name}</p>
                         <span className="font-mono text-[0.68rem] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
                           {a.roll}
                         </span>
                       </div>
                     </div>
                   </td>
-                  <td className="px-5 py-3.5">
+                  <td className="px-6 py-4">
                     <p className="text-xs text-slate-600 font-medium truncate max-w-[200px]">
                       {a.email || "-"}
                     </p>
                   </td>
-                  <td className="px-5 py-3.5 text-center">
+                  <td className="px-6 py-4 text-center">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[0.65rem] font-bold uppercase tracking-wider border ${
                       a.emailSent 
                         ? 'bg-emerald-50 text-emerald-800 border-emerald-300' 
@@ -319,12 +319,12 @@ export default function AttendeeTable({
                   {eventCheckpoints.map(cp => {
                     const status = getCheckpointStatus(a, cp.id);
                     return (
-                      <td key={cp.id} className="px-5 py-3.5 text-center">
+                      <td key={cp.id} className="px-6 py-4 text-center">
                         <StatusBadge done={status?.status} time={status?.scannedAt} />
                       </td>
                     );
                   })}
-                  <td className="px-5 py-3.5 text-center" onClick={(e) => e.stopPropagation()}>
+                  <td className="px-6 py-4 text-center" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-center gap-1.5">
                       <button
                         onClick={() => handleSendEmail(a.id)}
@@ -332,7 +332,7 @@ export default function AttendeeTable({
                         className={`btn btn-xs rounded-xl cursor-pointer text-[0.68rem] font-semibold transition-all ${
                           a.emailSent 
                             ? 'bg-slate-100 hover:bg-slate-200/80 text-slate-700 border border-slate-200/80' 
-                            : 'bg-[#1E2A78] hover:bg-[#151e56] text-white shadow-2xs'
+                            : 'bg-[#2563EB] hover:bg-blue-700 text-white shadow-2xs'
                         }`}
                       >
                         {emailLoading === a.id ? <Loader2 size={11} className="animate-spin" /> : <Mail size={11} />}
