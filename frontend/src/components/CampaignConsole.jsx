@@ -70,8 +70,9 @@ export default function CampaignConsole({ campaignId, onClose, onRedirectCleanup
             } else if (job.status === "SENT") {
               message = `Successfully dispatched to ${job.attendee?.email || "Unknown"}`;
               type = "success";
-            } else if (job.status === "FAILED") {
-              message = `Transmission failed for ${job.attendee?.email || "Unknown"}: ${job.error || "Network error"}`;
+            } else if (job.status === "FAILED" || job.status === "PERM_FAILED") {
+              const errDetail = job.errorMessage || job.error || "Email delivery failed";
+              message = `Transmission failed for ${job.attendee?.email || "Unknown"}: ${errDetail}`;
               type = "error";
             }
             
@@ -89,14 +90,14 @@ export default function CampaignConsole({ campaignId, onClose, onRedirectCleanup
         if (newLogs.length > 0) {
           setLogs(prev => [...prev.slice(-300), ...newLogs]); // keep last 300 logs
         }
-      } catch (e) {
-        console.error("Failed to fetch recent jobs", e);
+      } catch (err) {
+        console.error("Failed to fetch logs:", err);
       }
     };
-    
+
     fetchLogs();
-    const int = setInterval(fetchLogs, 1500);
-    return () => clearInterval(int);
+    const interval = setInterval(fetchLogs, 3000);
+    return () => clearInterval(interval);
   }, [campaignId]);
 
   // Auto-scroll logs
@@ -106,11 +107,9 @@ export default function CampaignConsole({ campaignId, onClose, onRedirectCleanup
 
   const handleAction = async (action) => {
     try {
-      if (action === "dispatchNow") {
+      if (action === "dispatch-now") {
         await api.post(`/campaigns/${campaignId}/dispatch-now`);
         toast({ type: "success", message: "Dispatch started immediately!" });
-        const res = await api.get(`/campaigns/${campaignId}`);
-        setCampaign(res.data);
       } else if (action === "pause") {
         await api.post(`/attendees/campaigns/${campaignId}/pause`);
         toast({ type: "success", message: "Campaign paused." });
@@ -124,6 +123,8 @@ export default function CampaignConsole({ campaignId, onClose, onRedirectCleanup
         await api.post(`/attendees/campaigns/${campaignId}/retry-failed`);
         toast({ type: "success", message: "Queued failed emails for retry." });
       }
+      const res = await api.get(`/campaigns/${campaignId}`);
+      setCampaign(res.data);
     } catch (e) {
       toast({ type: "error", message: e.response?.data?.error || `Failed to ${action} campaign` });
     }

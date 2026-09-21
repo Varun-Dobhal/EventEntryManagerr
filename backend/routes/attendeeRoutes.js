@@ -43,4 +43,7 @@ router.post('/campaigns/:id/pause', protect, authorize('ADMIN'), attendeeControl
 router.post('/campaigns/:id/resume', protect, authorize('ADMIN'), attendeeController.resumeCampaign);
 router.post('/campaigns/:id/cancel', protect, authorize('ADMIN'), attendeeController.cancelCampaign);
 router.get('/campaigns/:id/report', protect, authorize('ADMIN'), attendeeController.getCampaignReport);
+router.get('/campaigns/:id/failures', protect, authorize('ADMIN'), attendeeController.getCampaignFailures);
+router.post('/campaigns/:id/retry-failed', protect, authorize('ADMIN'), attendeeController.retryFailedEmails);
+router.post('/campaigns/:id/retry', protect, authorize('ADMIN'), attendeeController.retryFailedEmails);
 module.exports = router;
