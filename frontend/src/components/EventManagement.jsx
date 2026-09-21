@@ -123,7 +123,7 @@ export default function EventManagement({ activeEventId, setActiveEventId }) {
       {/* ── Section Header ─────────────────────────────────────────── */}
       <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-200">
         <div>
-          <h2 className="text-xl font-bold text-[#8B151B] font-serif uppercase tracking-tight mb-0.5">
+          <h2 className="text-xl font-bold text-slate-900 tracking-tight mb-0.5">
             Campus Event &amp; Checkpoint Directory
           </h2>
           <p className="text-slate-500 text-xs font-medium">
@@ -131,19 +131,19 @@ export default function EventManagement({ activeEventId, setActiveEventId }) {
           </p>
         </div>
         <button 
-          className="btn btn-primary btn-sm shadow-xs" 
+          className="bg-[#2563EB] hover:bg-blue-700 text-white font-semibold text-xs px-3.5 py-2 rounded-xl flex items-center gap-1.5 shadow-xs cursor-pointer" 
           onClick={() => { setFormData({ name: "", type: "Farewell", date: "", venue: "", bannerImage: "", description: "", entryTiming: "", exitTiming: "", isSequential: false }); setCheckpoints([]); setStep(1); setIsCreating(true); }}
         >
-          <Plus size={15} className="mr-1"/> Create New Event
+          <Plus size={14} className="mr-1"/> Create New Event
         </button>
       </div>
 
       {/* ── Event Creation / Edit Wizard ───────────────────────────── */}
       {isCreating ? (
-        <div className="card p-0 overflow-hidden mb-8 bg-white border border-slate-300 shadow-md animate-slide-up">
+        <div className="rounded-xl overflow-hidden mb-8 bg-white border border-[#E5EAF2] shadow-[0_2px_10px_rgba(15,23,42,0.04)] animate-slide-up">
           
-          {/* Wizard Header with Maroon Theme */}
-          <div className="bg-[#8B151B] text-white px-6 py-4 flex items-center justify-between border-b-2 border-[#C59B27]">
+          {/* Wizard Header */}
+          <div className="bg-[#1E2A78] text-white px-6 py-4 flex items-center justify-between border-b border-white/10">
             <div>
               <h3 className="text-base font-bold flex items-center gap-2">
                 <Calendar size={18} />

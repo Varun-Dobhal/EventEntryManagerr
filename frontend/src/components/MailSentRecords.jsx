@@ -121,7 +121,7 @@ export default function MailSentRecords({
     <div className="flex flex-col gap-6 animate-fade-in">
       
       {/* ── Top Header Banner & Stats ─────────────────────────────────── */}
-      <div className="bg-white/95 backdrop-blur-xl rounded-2xl border border-slate-200/80 shadow-[0_4px_20px_rgba(0,0,0,0.03)] p-6 sm:p-7">
+      <div className="bg-white rounded-xl border border-[#E5EAF2] shadow-[0_2px_10px_rgba(15,23,42,0.04)] p-6 sm:p-7">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-slate-100">
           <div>
             <div className="flex items-center gap-2.5 flex-wrap">
@@ -215,7 +215,7 @@ export default function MailSentRecords({
       </div>
 
       {/* ── Search, Filters & Records Table ───────────────────────────── */}
-      <div className="bg-white/95 backdrop-blur-xl rounded-2xl border border-slate-200/80 shadow-[0_10px_30px_rgba(0,0,0,0.04)] overflow-hidden">
+      <div className="bg-white rounded-xl border border-[#E5EAF2] shadow-[0_2px_10px_rgba(15,23,42,0.04)] overflow-hidden">
         
         {/* Search & Filter Ribbon */}
         <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between bg-white">

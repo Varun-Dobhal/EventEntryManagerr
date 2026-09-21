@@ -34,13 +34,13 @@ export default function AttendeeTable({
   };
 
   return (
-    <div className="bg-white/95 backdrop-blur-xl rounded-2xl border border-slate-200/80 shadow-[0_10px_30px_rgba(0,0,0,0.04)] overflow-hidden relative">
+    <div className="bg-white rounded-xl border border-[#E5EAF2] shadow-[0_2px_10px_rgba(15,23,42,0.04)] overflow-hidden relative">
       
       {/* ── Slide-out Details Drawer ───────────────────────────────── */}
       <div className={`fixed inset-y-0 right-0 w-full sm:w-96 bg-white border-l border-slate-200 shadow-2xl transition-transform duration-300 z-50 flex flex-col ${selectedAttendee ? 'translate-x-0' : 'translate-x-full'}`}>
         {selectedAttendee && (
           <>
-            <div className="p-5 bg-[#0D1038] text-white flex items-center justify-between border-b border-white/10">
+            <div className="p-5 bg-[#1E2A78] text-white flex items-center justify-between border-b border-white/10">
               <div>
                 <h3 className="font-bold text-base tracking-tight">Student Details</h3>
                 <p className="text-xs text-blue-200 font-mono mt-0.5">Roll: {selectedAttendee.roll}</p>
@@ -56,7 +56,7 @@ export default function AttendeeTable({
             
             <div className="p-6 overflow-y-auto flex-1 space-y-6 text-slate-800">
               <div className="flex items-center gap-3.5 pb-5 border-b border-slate-100">
-                <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-[#1E2A78] shrink-0">
+                <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-[#2563EB] shrink-0">
                   <UserCircle size={28} />
                 </div>
                 <div>
@@ -71,7 +71,7 @@ export default function AttendeeTable({
                 <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2.5">Pass Delivery Status</h4>
                 <div className="bg-slate-50/80 rounded-2xl p-4 border border-slate-200/80">
                   <p className="text-xs font-medium text-slate-700 flex items-center gap-2 mb-3.5">
-                    <Mail size={15} className="text-[#1E2A78]" /> {selectedAttendee.email || 'No registered email address'}
+                    <Mail size={15} className="text-[#2563EB]" /> {selectedAttendee.email || 'No registered email address'}
                   </p>
                   <div className="flex items-center justify-between pt-3 border-t border-slate-200/80">
                     <span className={`px-2.5 py-1 rounded-full text-[0.68rem] font-bold uppercase tracking-wider border ${
@@ -84,7 +84,7 @@ export default function AttendeeTable({
                     <button
                       onClick={() => handleSendEmail(selectedAttendee.id)}
                       disabled={!selectedAttendee.email || emailLoading === selectedAttendee.id}
-                      className="btn btn-sm bg-[#1E2A78] hover:bg-[#151e56] text-white rounded-xl cursor-pointer shadow-xs text-xs font-semibold"
+                      className="btn btn-sm bg-[#2563EB] hover:bg-blue-700 text-white rounded-xl cursor-pointer shadow-xs text-xs font-semibold"
                     >
                       {emailLoading === selectedAttendee.id ? <Loader2 size={13} className="animate-spin" /> : <Mail size={13} />}
                       <span>{selectedAttendee.emailSent ? 'Resend Pass' : 'Send Pass'}</span>
@@ -126,36 +126,26 @@ export default function AttendeeTable({
       </div>
 
       {/* ── Table Toolbar ──────────────────────────────────────────── */}
-      <div className="p-5 border-b border-slate-100 flex items-center flex-wrap gap-4 justify-between bg-white">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#1E2A78] border border-blue-100 flex items-center justify-center font-bold shrink-0">
-            <UserCircle size={22} />
-          </div>
-          <div>
-            <div className="flex items-center gap-2.5">
-              <h2 className="text-base font-black text-slate-900 tracking-tight m-0">
-                Attendee &amp; Pass Roster
-              </h2>
-              <span className="px-2.5 py-0.5 rounded-full text-[0.68rem] font-bold bg-blue-50 text-blue-800 border border-blue-200">
-                {filtered.length} of {stats.total} Attendees
-              </span>
-            </div>
-            <p className="text-slate-500 text-xs mt-0.5">
-              Manage student attendees, QR access passes, and multi-checkpoint admission statuses
-            </p>
-          </div>
+      <div className="px-5 py-4 border-b border-slate-100 flex items-center flex-wrap gap-4 justify-between bg-white">
+        <div className="flex items-center gap-2.5">
+          <span className="text-sm font-bold text-slate-800">
+            Registered Attendees
+          </span>
+          <span className="px-2.5 py-0.5 rounded-full text-[0.68rem] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+            {filtered.length} of {stats.total} Attendees
+          </span>
         </div>
         <div className="flex items-center gap-2">
           <button 
             onClick={handleClearAttendees} 
-            className="btn btn-sm btn-secondary text-red-600 border-red-200 hover:bg-red-50 rounded-xl cursor-pointer" 
+            className="btn btn-sm bg-white hover:bg-red-50 text-red-600 border border-red-200 rounded-xl cursor-pointer text-xs font-semibold" 
             title="Clear all registered attendees for this event"
           >
             <Trash2 size={13} className="mr-1" /> Clear Roster
           </button>
           <button 
             onClick={fetchAttendees} 
-            className="btn btn-sm btn-secondary rounded-xl cursor-pointer"
+            className="btn btn-sm bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl cursor-pointer text-xs font-semibold"
           >
             <RefreshCw size={13} className="mr-1" /> Refresh
           </button>

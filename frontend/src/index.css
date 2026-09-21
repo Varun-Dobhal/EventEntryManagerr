@@ -14,13 +14,13 @@
   --geu-dotted: #F0CF65;       /* Yellow dotted row divider */
 
   /* Foundation Canvas */
-  --bg: #FFFFFF;
-  --bg-secondary: #F8F9FD;
+  --bg: #F7F9FC;
+  --bg-secondary: #F1F4F9;
   --surface: #FFFFFF;
-  --surface-2: #F1F4F9;
-  --border: #E2E8F0;
-  --border-subtle: #EDF2F7;
-  --border-focus: #1E2A78;
+  --surface-2: #F8FAFC;
+  --border: #E5EAF2;
+  --border-subtle: #EEF2F6;
+  --border-focus: #2563EB;
 
   /* Typography Colors */
   --text-primary: #0F172A;
@@ -80,12 +80,8 @@ body {
 
 .app-bg {
   min-height: 100vh;
-  background-color: #F8FAFC;
-  background-image: 
-    radial-gradient(at 0% 0%, rgba(219, 234, 254, 0.45) 0px, transparent 45%),
-    radial-gradient(at 40% 100%, rgba(254, 205, 211, 0.35) 0px, transparent 45%),
-    radial-gradient(at 100% 100%, rgba(243, 232, 255, 0.35) 0px, transparent 45%);
-  background-attachment: fixed;
+  background-color: #F7F9FC;
+  color: #0F172A;
 }
 
 /* ── Graphic Era Custom Component Styles ──────────────────────────── */

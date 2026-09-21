@@ -360,7 +360,7 @@ export default function CampaignManagement({ activeEventId, onRedirectCleanup })
       {/* ── Section Header ─────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-200">
         <div>
-          <h2 className="text-xl font-bold text-[#8B151B] font-serif uppercase tracking-tight mb-0.5">
+          <h2 className="text-xl font-bold text-slate-900 tracking-tight mb-0.5">
             Email Pass Campaigns &amp; Delivery Engine
           </h2>
           <p className="text-slate-500 text-xs font-medium">
@@ -368,8 +368,8 @@ export default function CampaignManagement({ activeEventId, onRedirectCleanup })
           </p>
         </div>
         
-        {/* Segmented Control Buttons (~2019 Classic UI) */}
-        <div className="bg-slate-100 p-1 rounded border border-slate-300 flex gap-1 self-start sm:self-auto">
+        {/* Segmented Control Buttons */}
+        <div className="bg-slate-100 p-1 rounded-xl border border-slate-200 flex gap-1 self-start sm:self-auto">
           {[
             { id: 'monitor', label: 'Monitor Queue', icon: PlayCircle },
             { id: 'builder', label: 'New Dispatch', icon: Send },
@@ -378,10 +378,10 @@ export default function CampaignManagement({ activeEventId, onRedirectCleanup })
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold transition-all ${
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                 activeTab === tab.id 
-                  ? 'bg-[#8B151B] text-white shadow-xs' 
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200'
+                  ? 'bg-[#2563EB] text-white shadow-xs' 
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/70'
               }`}
             >
               <tab.icon size={14} /> <span>{tab.label}</span>

@@ -456,17 +456,17 @@ export default function VolunteerScanner({ role, onLogout }) {
       {flash === 'error' && <div className="absolute inset-0 bg-red-600/30 z-40 animate-fade-out pointer-events-none" />}
 
       {/* ── Top University Header ────────────────────────────────────── */}
-      <div className="shrink-0 bg-[#0D1038] text-white px-3 sm:px-4 py-2.5 border-b-2 border-[#FFB800] z-30 shadow-md">
+      <div className="shrink-0 bg-[#1E2A78] text-white px-3 sm:px-4 py-2.5 border-b border-[#E5EAF2]/20 z-30 shadow-xs">
         <div className="flex items-center justify-between gap-2">
           
           <div className="flex items-center gap-2.5">
             <img src={logoImg} alt="GEU Crest" className="w-8 h-8 object-contain bg-white rounded-full p-0.5 shrink-0" />
             <div>
               <div className="flex items-center gap-1.5">
-                <span className="font-bold text-xs uppercase tracking-tight font-serif text-[#FFB800]">
+                <span className="font-bold text-xs uppercase tracking-tight text-white">
                   Graphic Era University
                 </span>
-                <span className="text-[0.62rem] px-1.5 py-0.5 rounded-full bg-[#1E2A78] text-blue-100 border border-blue-400/50 font-bold uppercase">
+                <span className="text-[0.62rem] px-1.5 py-0.5 rounded-full bg-blue-900/60 text-blue-100 border border-blue-400/40 font-bold uppercase">
                   {role === 'FOOD_VOLUNTEER' ? 'Food Desk' : 'Gate Entry'}
                 </span>
               </div>
@@ -739,7 +739,7 @@ export default function VolunteerScanner({ role, onLogout }) {
           >
             <AmbientBackground />
             
-            <div className="w-full max-w-md bg-white/98 backdrop-blur-2xl rounded-[28px] sm:rounded-[32px] border border-white/80 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.09)] p-5 sm:p-8 md:p-10 relative z-10 animate-slide-up my-auto max-h-[92vh] overflow-y-auto">
+            <div className="w-full max-w-md bg-white rounded-xl border border-[#E5EAF2] shadow-[0_2px_10px_rgba(15,23,42,0.04)] p-5 sm:p-7 relative z-10 animate-slide-up my-auto max-h-[92vh] overflow-y-auto">
               
               {/* Header with Icon, Title & Checkpoint */}
               <div className="flex flex-col items-center justify-center text-center pb-4 mb-4 sm:pb-6 sm:mb-6 border-b border-slate-100 w-full">

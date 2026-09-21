@@ -27,6 +27,12 @@ import {
   Plus,
   MailCheck,
   Bell,
+  LayoutDashboard,
+  Menu,
+  LayoutGrid,
+  Globe,
+  ExternalLink,
+  QrCode,
 } from "lucide-react";
 import api from "../utils/api";
 import { useToast } from "../context/ToastContext";
@@ -44,79 +50,59 @@ import MailSentRecords from "../components/MailSentRecords";
 function StatCard({ label, value, total, color, icon, statColor, subtitle, badge, theme = "neutral" }) {
   const pct = total > 0 ? Math.round((value / total) * 100) : 0;
   
-  // Clean, soft pastel theme variants matching Image 2 reference exactly
+  // Exact styling matching Screenshot 3 horizontal cards
   const themes = {
     neutral: {
-      card: "bg-white border-slate-200/90",
+      card: "bg-white border-slate-200",
       label: "text-slate-500",
       value: "text-slate-900",
-      accent: "#1E2A78",
-      barBg: "bg-slate-100",
+      sub: "text-slate-400",
     },
     blue: {
-      card: "bg-[#EBF3FE]/70 border-blue-200/80",
-      label: "text-blue-600",
-      value: "text-blue-700",
-      accent: "#2563EB",
-      barBg: "bg-blue-100",
+      card: "bg-[#EFF6FF] border-[#BFDBFE]",
+      label: "text-[#2563EB]",
+      value: "text-[#2563EB]",
+      sub: "text-blue-600/80",
     },
     green: {
-      card: "bg-[#ECFDF5]/70 border-emerald-200/80",
-      label: "text-emerald-600",
-      value: "text-emerald-700",
-      accent: "#059669",
-      barBg: "bg-emerald-100",
+      card: "bg-[#ECFDF5] border-[#A7F3D0]",
+      label: "text-[#059669]",
+      value: "text-[#059669]",
+      sub: "text-emerald-600/80",
     },
     amber: {
-      card: "bg-[#FFFBEB]/70 border-amber-200/80",
-      label: "text-amber-600",
-      value: "text-amber-700",
-      accent: "#D97706",
-      barBg: "bg-amber-100",
+      card: "bg-[#FFFBEB] border-[#FDE68A]",
+      label: "text-[#D97706]",
+      value: "text-[#D97706]",
+      sub: "text-amber-600/80",
     },
     rose: {
-      card: "bg-[#FEF2F2]/70 border-rose-200/80",
-      label: "text-rose-600",
-      value: "text-rose-700",
-      accent: "#DC2626",
-      barBg: "bg-rose-100",
+      card: "bg-[#FEF2F2] border-[#FECDD3]",
+      label: "text-[#DC2626]",
+      value: "text-[#DC2626]",
+      sub: "text-rose-600/80",
     },
     purple: {
-      card: "bg-[#FAF5FF]/70 border-purple-200/80",
-      label: "text-purple-600",
-      value: "text-purple-700",
-      accent: "#7C3AED",
-      barBg: "bg-purple-100",
+      card: "bg-[#FAF5FF] border-[#DDD6FE]",
+      label: "text-[#7C3AED]",
+      value: "text-[#7C3AED]",
+      sub: "text-purple-600/80",
     }
   };
 
   const t = themes[theme] || themes.neutral;
-  const accentColor = statColor || color || t.accent;
 
   return (
-    <div className={`rounded-2xl border p-3.5 sm:p-4 flex flex-col justify-between transition-all shadow-[0_1px_3px_rgba(0,0,0,0.02)] text-center ${t.card}`}>
-      <div>
-        <p className={`text-[0.65rem] sm:text-[0.68rem] font-bold uppercase tracking-wider mb-1 truncate ${t.label}`}>
-          {label}
-        </p>
-        <h3 className={`text-2xl sm:text-3xl font-black tracking-tight leading-none my-1.5 ${t.value}`}>
-          {value}
-        </h3>
-      </div>
-      
-      <div className="pt-2 border-t border-black/5 flex items-center justify-between text-[0.68rem] text-slate-500 font-medium">
-        <span className="truncate mx-auto">
-          {subtitle || (total > 0 ? `${pct}% of roster` : "Registered")}
-        </span>
-        {total > 0 && (
-          <div className={`w-12 h-1 ${t.barBg} rounded-full overflow-hidden shrink-0 ml-1.5`}>
-            <div 
-              className="h-full rounded-full transition-all duration-500 ease-out" 
-              style={{ width: `${pct}%`, backgroundColor: accentColor }} 
-            />
-          </div>
-        )}
-      </div>
+    <div className={`rounded-xl border py-3 px-4 flex flex-col justify-between transition-all shadow-[0_1px_3px_rgba(0,0,0,0.02)] text-center ${t.card}`}>
+      <p className={`text-[10px] sm:text-[11px] font-bold uppercase tracking-wider truncate ${t.label}`}>
+        {label}
+      </p>
+      <h3 className={`text-2xl sm:text-[28px] font-bold tracking-tight leading-none my-1.5 ${t.value}`}>
+        {value}
+      </h3>
+      <p className={`text-[11px] font-normal truncate mt-0.5 ${t.sub}`}>
+        {subtitle || (total > 0 ? `${pct}% of roster` : "Registered")}
+      </p>
     </div>
   );
 }
@@ -191,6 +177,7 @@ export default function AdminDashboard({ onLogout }) {
   const [activeEventId, setActiveEventId] = useState("");
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, type: null, id: null, isProcessing: false });
   const [isImportOpen, setIsImportOpen] = useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   
   const activeEvent = events.find(e => e.id === activeEventId);
   const eventCheckpoints = activeEvent?.checkpoints || [];
@@ -583,17 +570,24 @@ export default function AdminDashboard({ onLogout }) {
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col justify-between font-sans bg-[#F8FAFC]">
+    <div className="min-h-screen w-full flex flex-col font-sans bg-[#F7F9FC]">
       
-      {/* ── Single Unified Executive Topbar (Clean White PBL Connect Theme) ── */}
-      <header className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-2xs">
-        {/* Top Accent Gradient Ribbon */}
-        <div className="h-1 w-full bg-gradient-to-r from-[#A31D24] via-[#FFB800] to-[#1E2A78]" />
-        
-        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-[68px] flex items-center justify-between gap-2 sm:gap-4">
+      {/* ── Graphic Era Executive Topbar (Screenshot 3 Philosophy) ── */}
+      <header className="sticky top-0 z-40 w-full bg-white border-b border-[#E5E7EB]">
+        <div className="w-full px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
           
-          {/* Left: Graphic Era Logo Crest & Event Switcher */}
+          {/* Left: Hamburger (mobile), Graphic Era Logo Crest, Portal Title */}
           <div className="flex items-center gap-3 sm:gap-4 shrink-0">
+            {/* Mobile Hamburger Toggle */}
+            <button
+              onClick={() => setMobileSidebarOpen(true)}
+              className="md:hidden p-1.5 text-slate-600 hover:text-slate-900 rounded-lg border border-slate-200"
+              title="Open Navigation"
+            >
+              <Menu size={18} />
+            </button>
+
+            {/* Logo and Crest */}
             <div 
               className="flex items-center gap-2.5 cursor-pointer group" 
               onClick={() => setActiveTab("dashboard")}
@@ -601,10 +595,10 @@ export default function AdminDashboard({ onLogout }) {
               <img 
                 src={logoImg} 
                 alt="Graphic Era Crest" 
-                className="w-9 h-9 sm:w-10 sm:h-10 object-contain shrink-0 group-hover:scale-105 transition-transform" 
+                className="w-8 h-8 sm:w-9 sm:h-9 object-contain shrink-0" 
               />
               <div className="flex flex-col justify-center">
-                <span className="font-serif text-base sm:text-lg font-bold text-slate-900 tracking-tight leading-none group-hover:text-[#1E2A78] transition-colors">
+                <span className="font-serif text-base sm:text-lg font-bold text-slate-900 tracking-tight leading-none">
                   Graphic Era
                 </span>
                 <span className="text-[0.6rem] sm:text-[0.65rem] text-slate-500 leading-tight mt-0.5">
@@ -616,110 +610,55 @@ export default function AdminDashboard({ onLogout }) {
               </div>
             </div>
 
-            <div className="h-7 w-px bg-slate-200 hidden md:block" />
+            {/* Divider */}
+            <div className="h-6 w-px bg-slate-200 hidden sm:block mx-1" />
 
-            {/* Event Selector Pill */}
-            {events.length === 0 ? (
-              <div className="hidden sm:flex items-center gap-1.5 bg-amber-50 border border-amber-200/80 rounded-xl px-2.5 py-1 text-xs">
-                <span className="text-amber-800 font-bold text-[0.68rem]">No Events</span>
-                <button
-                  onClick={() => setActiveTab("events")}
-                  className="bg-[#FFB800] hover:bg-[#E5A600] text-black font-black px-2 py-0.5 rounded-lg text-[0.65rem] cursor-pointer flex items-center gap-1 shadow-2xs"
-                >
-                  <Plus size={11} />
-                  <span>Create</span>
-                </button>
-              </div>
-            ) : (
-              <div className="hidden sm:flex items-center gap-1.5 bg-slate-50 hover:bg-slate-100/80 border border-slate-200/90 rounded-xl px-2.5 py-1.5 transition-all">
-                <span className="w-2 h-2 rounded-full bg-[#FFB800] shrink-0" />
-                <span className="text-[0.68rem] font-semibold text-slate-500 shrink-0">Event:</span>
-                <select 
-                  className="bg-transparent text-xs font-bold text-slate-800 focus:outline-none cursor-pointer pr-1 max-w-[120px] sm:max-w-[150px] truncate"
-                  value={activeEventId}
-                  onChange={(e) => setActiveEventId(e.target.value)}
-                >
-                  {events.map(ev => <option key={ev.id} value={ev.id} className="bg-white text-slate-900">{ev.name}</option>)}
-                </select>
-                <button
-                  onClick={() => setActiveTab("events")}
-                  title="Manage / Create Events"
-                  className="text-slate-400 hover:text-[#1E2A78] p-0.5 rounded transition-colors cursor-pointer"
-                >
-                  <Plus size={13} />
-                </button>
-              </div>
-            )}
+            {/* Portal Title */}
+            <span className="text-sm font-semibold text-slate-800 hidden sm:inline">
+              Event Entry Portal
+            </span>
           </div>
 
-          {/* Center: Navigation Tabs */}
-          <nav className="flex items-center gap-1 sm:gap-1.5 overflow-x-auto no-scrollbar py-1">
-            {[
-              { id: "dashboard", label: "Roster", fullLabel: "Programs & Roster", icon: <Users size={14} /> },
-              { id: "mail-sent", label: "Mail Sent", fullLabel: "Mail Sent", icon: <MailCheck size={14} /> },
-              { id: "events", label: "Events", fullLabel: "Events & Gates", icon: <ScanLine size={14} /> },
-              { id: "campaigns", label: "Passes", fullLabel: "Email Passes", icon: <Mail size={14} /> },
-              { id: "settings", label: "Settings", fullLabel: "System Settings", icon: <Settings size={14} /> },
-            ].map((tab) => {
-              const isActive = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-[11px] sm:text-xs font-bold rounded-xl flex items-center gap-1.5 transition-all whitespace-nowrap cursor-pointer shrink-0 ${
-                    isActive
-                      ? "bg-[#1E2A78] text-white shadow-xs font-bold"
-                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-semibold"
-                  }`}
-                >
-                  {tab.icon}
-                  <span className="hidden lg:inline">{tab.fullLabel}</span>
-                  <span className="inline lg:hidden">{tab.label}</span>
-                </button>
-              );
-            })}
-          </nav>
-
-          {/* Right: Actions & Profile Pill (Image 1 Style) */}
-          <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
-            {/* Live Console Indicator */}
-            <div className="hidden 2xl:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[0.68rem] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80 tracking-wider">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span>Live Console</span>
-            </div>
-            
-            {/* Circular Bell Button */}
+          {/* Right: Actions, App Grid, Notifications & Profile Avatar (Screenshot 3 Style) */}
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            {/* App Grid Icon */}
             <button 
-              className="w-8 h-8 sm:w-9 sm:h-9 rounded-full border border-slate-200/80 bg-white hover:bg-slate-50 flex items-center justify-center text-slate-500 hover:text-slate-800 transition-colors shadow-2xs cursor-pointer"
-              title="Notifications"
+              onClick={() => setActiveTab("dashboard")}
+              className="w-8 h-8 rounded-full border border-slate-200 bg-white hover:bg-slate-50 flex items-center justify-center text-slate-500 hover:text-slate-800 transition-colors shadow-2xs cursor-pointer"
+              title="Workspaces & Services"
             >
-              <Bell size={14} />
+              <LayoutGrid size={15} />
             </button>
 
             {/* Circular Refresh Button */}
             <button 
               onClick={activeTab === "settings" ? fetchSettings : fetchAttendees} 
-              className="w-8 h-8 sm:w-9 sm:h-9 rounded-full border border-slate-200/80 bg-white hover:bg-slate-50 flex items-center justify-center text-slate-500 hover:text-slate-800 transition-colors shadow-2xs cursor-pointer"
+              className="w-8 h-8 rounded-full border border-slate-200 bg-white hover:bg-slate-50 flex items-center justify-center text-slate-500 hover:text-slate-800 transition-colors shadow-2xs cursor-pointer"
               title="Refresh Data"
             >
-              <RefreshCw size={13} />
+              <RefreshCw size={14} />
             </button>
 
-            {/* User Profile Pill */}
-            <div className="flex items-center gap-1.5 pl-1 border-l border-slate-200/80">
-              <div className="flex items-center gap-2 bg-slate-50/80 hover:bg-slate-100/80 border border-slate-200/80 rounded-full pl-1 pr-2 sm:pr-3 py-1 transition-all">
-                <div className="w-7 h-7 rounded-full bg-[#1E2A78] text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs relative">
-                  <span>A</span>
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 absolute -bottom-0.5 -right-0.5 ring-2 ring-white" />
-                </div>
-                <div className="hidden lg:flex flex-col text-left">
-                  <span className="text-[0.72rem] font-bold text-slate-800 leading-tight">Admin Console</span>
-                  <span className="text-[0.55rem] font-semibold text-slate-400 uppercase tracking-wider leading-none mt-0.5">FACULTY / EVENT INCHARGE</span>
-                </div>
+            {/* Circular Bell Button */}
+            <button 
+              className="w-8 h-8 rounded-full border border-slate-200 bg-white hover:bg-slate-50 flex items-center justify-center text-slate-500 hover:text-slate-800 transition-colors shadow-2xs cursor-pointer"
+              title="Notifications"
+            >
+              <Bell size={14} />
+            </button>
+
+            {/* User Profile Avatar & Sign Out */}
+            <div className="flex items-center gap-2 pl-2 border-l border-slate-200">
+              <div 
+                className="w-8 h-8 rounded-full bg-[#1E2A78] text-white flex items-center justify-center font-bold text-xs shadow-xs relative shrink-0" 
+                title="Admin Console (Faculty / Event Incharge)"
+              >
+                <span>A</span>
+                <span className="w-2 h-2 rounded-full bg-emerald-500 absolute -bottom-0.5 -right-0.5 ring-2 ring-white" />
               </div>
               <button 
                 onClick={onLogout} 
-                className="text-slate-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-xl transition-colors cursor-pointer"
+                className="text-slate-400 hover:text-red-600 p-1.5 rounded-lg transition-colors cursor-pointer"
                 title="Sign Out"
               >
                 <LogOut size={16} /> 
@@ -730,8 +669,125 @@ export default function AdminDashboard({ onLogout }) {
         </div>
       </header>
 
-      {/* ── Main Workspace (Full Width & Perfectly Centered) ──────────── */}
-      <main className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-16 flex-1">
+      {/* ── Main Layout Body: Left Sidebar + Main Content Canvas ── */}
+      <div className="flex-1 flex w-full">
+
+        {/* ── Desktop Left Sidebar (Exact Screenshot 3 Match) ── */}
+        <aside className="w-60 shrink-0 bg-white border-r border-[#E5E7EB] hidden md:flex flex-col justify-between py-5 px-3 min-h-[calc(100vh-64px)]">
+          <div className="space-y-1">
+            {[
+              { id: "dashboard", label: "Dashboard", icon: <LayoutDashboard size={17} /> },
+              { id: "mail-sent", label: "Mail Sent", icon: <MailCheck size={17} /> },
+              { id: "events", label: "Events & Gates", icon: <ScanLine size={17} /> },
+              { id: "campaigns", label: "Email Passes", icon: <Send size={17} /> },
+              { id: "settings", label: "System Settings", icon: <Settings size={17} /> },
+            ].map((item) => {
+              const isActive = activeTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveTab(item.id)}
+                  className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm transition-colors text-left cursor-pointer ${
+                    isActive
+                      ? "bg-[#2563EB] text-white font-medium shadow-xs"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium"
+                  }`}
+                >
+                  <span className={isActive ? "text-white" : "text-slate-500"}>
+                    {item.icon}
+                  </span>
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Sidebar Footer: Volunteer Scanner Link & Portal Info */}
+          <div className="pt-4 border-t border-slate-100 space-y-2">
+            <a
+              href="/volunteer"
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center justify-between px-3 py-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold border border-slate-200/80 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span>Live Scanner</span>
+              </div>
+              <ExternalLink size={12} className="text-slate-400" />
+            </a>
+            <div className="px-3 text-[0.68rem] text-slate-400 font-medium">
+              <span>Session 2026–2027</span>
+            </div>
+          </div>
+        </aside>
+
+        {/* ── Mobile Sidebar Drawer (Screens < 768px) ── */}
+        {mobileSidebarOpen && (
+          <div className="fixed inset-0 z-50 md:hidden flex">
+            <div 
+              className="fixed inset-0 bg-black/40 backdrop-blur-xs transition-opacity" 
+              onClick={() => setMobileSidebarOpen(false)} 
+            />
+            <div className="relative w-64 bg-white flex flex-col justify-between p-4 shadow-xl z-10 animate-fade-in">
+              <div>
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
+                  <span className="font-bold text-sm text-slate-900">Event Portal Menu</span>
+                  <button 
+                    onClick={() => setMobileSidebarOpen(false)}
+                    className="p-1 rounded-lg text-slate-400 hover:text-slate-700"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+                <div className="space-y-1">
+                  {[
+                    { id: "dashboard", label: "Dashboard", icon: <LayoutDashboard size={17} /> },
+                    { id: "mail-sent", label: "Mail Sent", icon: <MailCheck size={17} /> },
+                    { id: "events", label: "Events & Gates", icon: <ScanLine size={17} /> },
+                    { id: "campaigns", label: "Email Passes", icon: <Send size={17} /> },
+                    { id: "settings", label: "System Settings", icon: <Settings size={17} /> },
+                  ].map((item) => {
+                    const isActive = activeTab === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => {
+                          setActiveTab(item.id);
+                          setMobileSidebarOpen(false);
+                        }}
+                        className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm text-left ${
+                          isActive
+                            ? "bg-[#2563EB] text-white font-medium"
+                            : "text-slate-600 hover:bg-slate-50 font-medium"
+                        }`}
+                      >
+                        {item.icon}
+                        <span>{item.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-slate-100">
+                <a
+                  href="/volunteer"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center justify-between px-3 py-2 rounded-xl bg-slate-50 text-slate-700 text-xs font-semibold border border-slate-200"
+                >
+                  <span>Live Scanner</span>
+                  <ExternalLink size={12} />
+                </a>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Main Workspace Content Area ──────────── */}
+        <main className="flex-1 min-w-0 bg-[#F7F9FC] p-4 sm:p-6 lg:p-8 overflow-y-auto">
+          <div className="max-w-[1400px] mx-auto w-full">
         {activeTab === "events" ? (
           <EventManagement activeEventId={activeEventId} setActiveEventId={setActiveEventId} />
         ) : activeTab === "campaigns" ? (
@@ -993,14 +1049,14 @@ export default function AdminDashboard({ onLogout }) {
           />
         ) : (
           <>
-        {/* ── Operational Event Header & Quick Action Bar ──────────── */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 bg-white/90 backdrop-blur-md p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-[0_2px_12px_rgba(0,0,0,0.02)]">
+        {/* ── Page Header & Quick Action Toolbar (Screenshot 3 Style) ──── */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight m-0">
-                {activeEvent?.name || "Active Event Operations"}
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight m-0">
+                {activeEvent?.name || "Attendee & Pass Roster"}
               </h1>
-              <span className="px-2.5 py-0.5 rounded-full text-[0.68rem] font-bold bg-[#1E2A78]/10 text-[#1E2A78] border border-[#1E2A78]/20">
+              <span className="px-2.5 py-0.5 rounded-full text-[0.68rem] font-bold bg-blue-50 text-blue-700 border border-blue-200">
                 {eventCheckpoints.length} Checkpoints
               </span>
               <span className="px-2.5 py-0.5 rounded-full text-[0.68rem] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
@@ -1014,22 +1070,43 @@ export default function AdminDashboard({ onLogout }) {
             </p>
           </div>
 
-          {/* Quick CTAs */}
+          {/* Quick CTAs / Event Selector */}
           <div className="flex items-center gap-2.5 flex-wrap">
+            {events.length > 0 && (
+              <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-xl px-3 py-1.5 shadow-2xs">
+                <span className="text-[0.68rem] font-semibold text-slate-500 shrink-0">Event:</span>
+                <select 
+                  className="bg-transparent text-xs font-semibold text-slate-800 focus:outline-none cursor-pointer max-w-[140px] truncate"
+                  value={activeEventId}
+                  onChange={(e) => setActiveEventId(e.target.value)}
+                >
+                  {events.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
+                </select>
+                <button
+                  onClick={() => setActiveTab("events")}
+                  title="Manage / Create Events"
+                  className="text-slate-400 hover:text-[#2563EB] p-0.5 rounded transition-colors cursor-pointer"
+                >
+                  <Plus size={13} />
+                </button>
+              </div>
+            )}
+
             <button
               onClick={() => setIsImportOpen(prev => !prev)}
               className={`btn btn-sm text-xs font-semibold rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-xs ${
                 isImportOpen 
                   ? "bg-slate-900 text-white hover:bg-slate-800" 
-                  : "bg-[#1E2A78] hover:bg-[#16205e] text-white"
+                  : "bg-[#2563EB] hover:bg-blue-700 text-white"
               }`}
             >
               <Upload size={13} />
               <span>{isImportOpen ? "Close Importer" : "Import Excel Roster"}</span>
             </button>
+
             <button
               onClick={() => setShowEmailConfig(prev => !prev)}
-              className="btn btn-sm bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/90 text-xs font-semibold rounded-xl flex items-center gap-1.5 cursor-pointer shadow-2xs"
+              className="btn btn-sm bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-semibold rounded-xl flex items-center gap-1.5 cursor-pointer shadow-2xs"
             >
               <Mail size={13} />
               <span>Pass Delivery ({attendees.filter(a => !a.emailSent && a.email).length} Pending)</span>
@@ -1520,7 +1597,9 @@ export default function AdminDashboard({ onLogout }) {
         </div>
         </>
         )}
-      </main>
+          </div>
+        </main>
+      </div>
 
       {/* ── Full Width Global Footer ───────────────────────────────── */}
       <GlobalFooter />
