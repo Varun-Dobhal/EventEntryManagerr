@@ -163,8 +163,8 @@ export default function AttendeeTable({
       </div>
 
       {/* ── Search & Filters Ribbon ────────────────────────────────── */}
-      <div className="p-3.5 border-b border-slate-100 flex gap-3 flex-wrap bg-slate-50/60 items-center">
-        <div className="relative flex-grow min-w-[240px] max-w-sm">
+      <div className="p-3.5 border-b border-slate-100 flex gap-3 flex-wrap bg-slate-50/60 items-center justify-between">
+        <div className="relative w-full sm:w-auto flex-grow max-w-md">
           <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
           <input
             className="input w-full bg-white border-slate-200/90 focus:border-blue-500 rounded-xl text-xs sm:text-sm transition-all shadow-2xs"

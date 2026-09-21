@@ -44,14 +44,11 @@ function StatCard({ label, value, total, color, icon, statColor, subtitle, badge
   const pct = total > 0 ? Math.round((value / total) * 100) : 0;
   const accentColor = statColor || color || "#1E2A78";
   return (
-    <div className="bg-white rounded-2xl border border-slate-200/90 shadow-[0_2px_12px_rgba(0,0,0,0.03)] hover:shadow-md hover:-translate-y-0.5 transition-all p-4 relative overflow-hidden flex flex-col justify-between group">
-      {/* Top accent border */}
-      <div className="absolute top-0 left-0 right-0 h-1" style={{ backgroundColor: accentColor }} />
-      
-      <div className="flex items-start justify-between gap-2 mb-2 pt-1">
+    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-[0_2px_8px_rgba(0,0,0,0.02)] hover:border-slate-300 transition-all p-4.5 flex flex-col justify-between group">
+      <div className="flex items-start justify-between gap-2 mb-2.5">
         <div>
-          <p className="text-[0.68rem] font-bold text-slate-400 uppercase tracking-wider">{label}</p>
-          <div className="flex items-baseline gap-1.5 mt-0.5">
+          <p className="text-[0.68rem] font-bold text-slate-400 uppercase tracking-wider mb-1">{label}</p>
+          <div className="flex items-baseline gap-1.5">
             <h3 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight leading-none">{value}</h3>
             {total !== undefined && total > 0 && (
               <span className="text-xs font-semibold text-slate-400">/ {total}</span>
@@ -59,9 +56,9 @@ function StatCard({ label, value, total, color, icon, statColor, subtitle, badge
           </div>
         </div>
         <div 
-          className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 shadow-2xs" 
+          className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-105" 
           style={{ 
-            backgroundColor: `${accentColor}15`, 
+            backgroundColor: `${accentColor}12`, 
             color: accentColor 
           }}
         >
@@ -69,8 +66,8 @@ function StatCard({ label, value, total, color, icon, statColor, subtitle, badge
         </div>
       </div>
       
-      <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
-        <span className="text-[0.7rem] text-slate-500 font-medium">
+      <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
+        <span className="text-[0.7rem] text-slate-500 font-medium truncate">
           {subtitle || (total > 0 ? `${pct}% of roster` : "Registered Attendees")}
         </span>
         {badge ? (
@@ -78,7 +75,7 @@ function StatCard({ label, value, total, color, icon, statColor, subtitle, badge
             {badge}
           </span>
         ) : total > 0 ? (
-          <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+          <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden shrink-0 ml-2">
             <div 
               className="h-full rounded-full transition-all duration-500 ease-out" 
               style={{ width: `${pct}%`, backgroundColor: accentColor }} 
@@ -552,14 +549,14 @@ export default function AdminDashboard({ onLogout }) {
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-between font-sans bg-[#F8FAFC]">
+    <div className="min-h-screen w-full flex flex-col justify-between font-sans bg-[#F8FAFC]">
       
-      {/* ── Single Unified Executive Topbar ─────────────────────────── */}
-      <header className="sticky top-0 z-50 w-full bg-[#0B0F28] border-b border-slate-800 shadow-[0_4px_24px_rgba(0,0,0,0.25)]">
-        {/* Top Accent Gradient Bar */}
-        <div className="h-0.5 w-full bg-gradient-to-r from-[#A31D24] via-[#FFB800] to-[#1E2A78]" />
+      {/* ── Single Unified Executive Topbar (Clean White PBL Connect Theme) ── */}
+      <header className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-2xs">
+        {/* Top Accent Gradient Ribbon */}
+        <div className="h-1 w-full bg-gradient-to-r from-[#A31D24] via-[#FFB800] to-[#1E2A78]" />
         
-        <div className="w-full px-3 sm:px-6 lg:px-10 h-16 sm:h-[68px] flex items-center justify-between gap-2 sm:gap-4">
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-[68px] flex items-center justify-between gap-2 sm:gap-4">
           
           {/* Left: Graphic Era Logo Crest & Event Switcher */}
           <div className="flex items-center gap-3 sm:gap-4 shrink-0">
@@ -573,47 +570,47 @@ export default function AdminDashboard({ onLogout }) {
                 className="w-9 h-9 sm:w-10 sm:h-10 object-contain shrink-0 group-hover:scale-105 transition-transform" 
               />
               <div className="flex flex-col justify-center">
-                <span className="font-serif text-base sm:text-lg font-bold text-white tracking-tight leading-none group-hover:text-[#FFB800] transition-colors">
+                <span className="font-serif text-base sm:text-lg font-bold text-slate-900 tracking-tight leading-none group-hover:text-[#1E2A78] transition-colors">
                   Graphic Era
                 </span>
-                <span className="text-[0.6rem] sm:text-[0.65rem] text-slate-300 leading-tight mt-0.5">
-                  deemed to be <strong className="text-white font-medium">University</strong>
+                <span className="text-[0.6rem] sm:text-[0.65rem] text-slate-500 leading-tight mt-0.5">
+                  deemed to be <strong className="text-slate-800 font-medium">University</strong>
                 </span>
-                <span className="text-[0.5rem] font-bold tracking-[0.22em] text-[#FFB800] uppercase leading-none mt-0.5">
+                <span className="text-[0.52rem] font-bold tracking-[0.2em] text-[#A31D24] uppercase leading-none mt-0.5">
                   DEHRADUN
                 </span>
               </div>
             </div>
 
-            <div className="h-7 w-px bg-white/15 hidden md:block" />
+            <div className="h-7 w-px bg-slate-200 hidden md:block" />
 
             {/* Event Selector Pill */}
             {events.length === 0 ? (
-              <div className="hidden sm:flex items-center gap-1.5 bg-amber-500/15 border border-amber-500/30 rounded-xl px-2.5 py-1 text-xs">
-                <span className="text-amber-300 font-bold text-[0.68rem]">No Events</span>
+              <div className="hidden sm:flex items-center gap-1.5 bg-amber-50 border border-amber-200/80 rounded-xl px-2.5 py-1 text-xs">
+                <span className="text-amber-800 font-bold text-[0.68rem]">No Events</span>
                 <button
                   onClick={() => setActiveTab("events")}
-                  className="bg-[#FFB800] hover:bg-[#E5A600] text-black font-black px-2 py-0.5 rounded-lg text-[0.65rem] cursor-pointer flex items-center gap-1"
+                  className="bg-[#FFB800] hover:bg-[#E5A600] text-black font-black px-2 py-0.5 rounded-lg text-[0.65rem] cursor-pointer flex items-center gap-1 shadow-2xs"
                 >
                   <Plus size={11} />
                   <span>Create</span>
                 </button>
               </div>
             ) : (
-              <div className="hidden sm:flex items-center gap-1.5 bg-white/10 hover:bg-white/15 border border-white/15 rounded-xl px-2.5 py-1.5 transition-all">
+              <div className="hidden sm:flex items-center gap-1.5 bg-slate-50 hover:bg-slate-100/80 border border-slate-200/90 rounded-xl px-2.5 py-1.5 transition-all">
                 <span className="w-2 h-2 rounded-full bg-[#FFB800] shrink-0" />
-                <span className="text-[0.68rem] font-semibold text-slate-300 shrink-0">Event:</span>
+                <span className="text-[0.68rem] font-semibold text-slate-500 shrink-0">Event:</span>
                 <select 
-                  className="bg-transparent text-xs font-bold text-white focus:outline-none cursor-pointer pr-1 max-w-[120px] sm:max-w-[150px] truncate"
+                  className="bg-transparent text-xs font-bold text-slate-800 focus:outline-none cursor-pointer pr-1 max-w-[120px] sm:max-w-[150px] truncate"
                   value={activeEventId}
                   onChange={(e) => setActiveEventId(e.target.value)}
                 >
-                  {events.map(ev => <option key={ev.id} value={ev.id} className="bg-[#0D1038] text-white">{ev.name}</option>)}
+                  {events.map(ev => <option key={ev.id} value={ev.id} className="bg-white text-slate-900">{ev.name}</option>)}
                 </select>
                 <button
                   onClick={() => setActiveTab("events")}
                   title="Manage / Create Events"
-                  className="text-slate-400 hover:text-[#FFB800] p-0.5 rounded transition-colors cursor-pointer"
+                  className="text-slate-400 hover:text-[#1E2A78] p-0.5 rounded transition-colors cursor-pointer"
                 >
                   <Plus size={13} />
                 </button>
@@ -637,13 +634,13 @@ export default function AdminDashboard({ onLogout }) {
                   onClick={() => setActiveTab(tab.id)}
                   className={`px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-[11px] sm:text-xs font-bold rounded-xl flex items-center gap-1.5 transition-all whitespace-nowrap cursor-pointer shrink-0 ${
                     isActive
-                      ? "bg-[#FFB800] text-black font-black shadow-sm"
-                      : "text-slate-300 hover:text-white hover:bg-white/10"
+                      ? "bg-[#1E2A78] text-white shadow-xs font-bold"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-semibold"
                   }`}
                 >
                   {tab.icon}
-                  <span className="hidden md:inline">{tab.fullLabel}</span>
-                  <span className="inline md:hidden">{tab.label}</span>
+                  <span className="hidden lg:inline">{tab.fullLabel}</span>
+                  <span className="inline lg:hidden">{tab.label}</span>
                 </button>
               );
             })}
@@ -651,14 +648,14 @@ export default function AdminDashboard({ onLogout }) {
 
           {/* Right: Status, Refresh & Sign Out */}
           <div className="flex items-center gap-2 shrink-0">
-            <div className="hidden xl:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[0.68rem] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 tracking-wider">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <div className="hidden xl:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[0.68rem] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80 tracking-wider">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               <span>Live Console</span>
             </div>
             
             <button 
               onClick={activeTab === "settings" ? fetchSettings : fetchAttendees} 
-              className="bg-white/10 hover:bg-white/15 text-slate-200 hover:text-white border border-white/15 rounded-xl px-2.5 py-1.5 sm:px-3 sm:py-1.5 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+              className="bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 border border-slate-200/90 rounded-xl px-2.5 py-1.5 sm:px-3 sm:py-1.5 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
               title="Refresh Data"
             >
               <RefreshCw size={12} />
@@ -666,7 +663,7 @@ export default function AdminDashboard({ onLogout }) {
             </button>
             <button 
               onClick={onLogout} 
-              className="bg-red-500/15 hover:bg-red-500/25 text-red-300 hover:text-red-200 border border-red-500/30 rounded-xl px-2.5 py-1.5 sm:px-3 sm:py-1.5 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+              className="bg-red-50 hover:bg-red-100/80 text-red-600 hover:text-red-700 border border-red-200/80 rounded-xl px-2.5 py-1.5 sm:px-3 sm:py-1.5 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
               title="Sign Out"
             >
               <LogOut size={12} /> 
@@ -678,7 +675,7 @@ export default function AdminDashboard({ onLogout }) {
       </header>
 
       {/* ── Main Workspace (Full Width & Perfectly Centered) ──────────── */}
-      <main className="flex-1 w-full max-w-[1440px] mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pb-12">
+      <main className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-16 flex-1">
         {activeTab === "events" ? (
           <EventManagement activeEventId={activeEventId} setActiveEventId={setActiveEventId} />
         ) : activeTab === "campaigns" ? (
@@ -985,7 +982,7 @@ export default function AdminDashboard({ onLogout }) {
         </div>
 
         {/* ── High-Density Executive Stat Cards ──────────────────────── */}
-        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5 sm:gap-4 mb-6">
           <StatCard
             label="Total Roster"
             value={stats.total}

@@ -56,7 +56,7 @@ function App() {
     <ThemeProvider>
       <ToastProvider>
         <Router>
-          <div className="app-bg relative min-h-screen text-slate-800">
+          <div className="app-bg relative min-h-screen w-full flex flex-col text-slate-800">
             {isInitializing ? (
               <div
                 style={{
@@ -79,7 +79,7 @@ function App() {
                 />
               </div>
             ) : (
-              <div className="relative z-10">
+              <div className="relative z-10 w-full min-h-screen flex flex-col flex-1">
                 <Routes>
                 <Route
                   path="/"
