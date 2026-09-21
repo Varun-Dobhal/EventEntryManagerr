@@ -1,11 +1,184 @@
 import React, { useState, useEffect } from "react";
 import api from "../utils/api";
 import { useToast } from "../context/ToastContext";
-import { PlayCircle, Plus, RefreshCw, X, AlertCircle, Download, Edit2, Trash2, Send, FileCode2, Inbox, MailWarning, LayoutTemplate, Loader2 } from "lucide-react";
+import { PlayCircle, Plus, RefreshCw, X, AlertCircle, Download, Edit2, Trash2, Send, FileCode2, Inbox, MailWarning, LayoutTemplate, Loader2, Image, Upload, Eye, QrCode, Sparkles } from "lucide-react";
 import { categorizeEmailError } from "../utils/errorCategorization";
 import CampaignConsole from "./CampaignConsole";
 import DeleteModal from "./DeleteModal";
 import { EmptyState } from "./ui/EmptyState";
+
+const compressPosterImage = (file) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new window.Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let width = img.width;
+        let height = img.height;
+        const maxWidth = 700;
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+        resolve(dataUrl);
+      };
+      img.onerror = reject;
+      img.src = event.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+};
+
+export function compilePassTemplateHtml({ name, subject, posterImage, instructions }) {
+  const config = JSON.stringify({
+    posterImage: posterImage || "",
+    instructions: instructions || "",
+  });
+  const configComment = `<!-- TEMPLATE_CONFIG: ${config} -->`;
+
+  const posterBlock = posterImage ? `
+        <tr>
+          <td style="padding: 0; background: #0D1038; text-align: center; line-height: 0;">
+            <img src="${posterImage}" alt="Event Banner" style="width: 100%; max-width: 560px; max-height: 380px; object-fit: cover; display: block; margin: 0 auto; border-bottom: 3px solid #8B151B;" />
+          </td>
+        </tr>
+  ` : `
+        <tr>
+          <td style="background: linear-gradient(135deg, #8B151B 0%, #5E0E12 100%); padding: 26px 20px; text-align: center; color: #ffffff;">
+            <div style="font-size: 11px; font-weight: 800; letter-spacing: 2px; color: #F59E0B; text-transform: uppercase;">Graphic Era (Deemed to be University)</div>
+            <h1 style="margin: 8px 0 0 0; font-size: 20px; font-weight: 800; color: #ffffff; font-family: serif; letter-spacing: 0.5px;">{{event_name}}</h1>
+            <div style="margin-top: 4px; font-size: 12px; color: #FECDD3; font-weight: 500;">Official University Digital Entry Pass</div>
+          </td>
+        </tr>
+  `;
+
+  const instructionsBlock = instructions && instructions.trim() ? `
+        <tr>
+          <td style="padding: 0 24px 24px 24px;">
+            <div style="background: #FFFBEB; border-left: 4px solid #D97706; border-radius: 8px; padding: 16px; border-top: 1px solid #FEF3C7; border-right: 1px solid #FEF3C7; border-bottom: 1px solid #FEF3C7;">
+              <div style="font-size: 12px; font-weight: 800; color: #92400E; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">
+                📌 Event Instructions &amp; Entry Guidelines
+              </div>
+              <div style="font-size: 13px; color: #78350F; line-height: 1.6; white-space: pre-wrap; word-break: break-word;">
+${instructions.trim()}
+              </div>
+            </div>
+          </td>
+        </tr>
+  ` : "";
+
+  return `${configComment}
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${subject || "Official Event Entry Pass"}</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #F1F5F9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #F1F5F9; padding: 24px 10px;">
+    <tr>
+      <td align="center">
+        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 560px; background-color: #FFFFFF; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.07); border: 1px solid #E2E8F0;">
+          
+          ${posterBlock}
+
+          <!-- Pass Holder Info Header -->
+          <tr>
+            <td style="padding: 24px 24px 12px 24px;">
+              <table width="100%" border="0" cellpadding="0" cellspacing="0" style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; padding: 14px 18px;">
+                <tr>
+                  <td align="left" style="vertical-align: middle;">
+                    <div style="font-size: 10px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 1px;">Verified Pass Holder</div>
+                    <div style="font-size: 17px; font-weight: 800; color: #0F172A; margin-top: 2px;">{{name}}</div>
+                    <div style="font-size: 12px; font-weight: 600; color: #475569; margin-top: 2px;">University Roll: <strong style="color: #8B151B; font-family: monospace; font-size: 13px;">{{roll}}</strong></div>
+                  </td>
+                  <td align="right" style="vertical-align: middle;">
+                    <span style="display: inline-block; background: #DCFCE7; border: 1px solid #86EFAC; color: #166534; font-size: 10px; font-weight: 800; padding: 4px 12px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.5px;">
+                      ● VALID PASS
+                    </span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Single Official QR Code Section -->
+          <tr>
+            <td align="center" style="padding: 12px 24px 20px 24px;">
+              <div style="background: #FFFFFF; border: 2px dashed #94A3B8; border-radius: 16px; padding: 22px; text-align: center; max-width: 320px; margin: 0 auto; box-shadow: 0 2px 10px rgba(0,0,0,0.03);">
+                <div style="font-size: 11px; font-weight: 800; color: #0D1038; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 12px;">
+                  SCAN AT GATE CHECKPOINT
+                </div>
+                <div style="display: inline-block; padding: 10px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px;">
+                  {{qr_code}}
+                </div>
+                <div style="margin-top: 14px;">
+                  <a href="{{qr_link}}" style="display: inline-block; background: #8B151B; color: #FFFFFF; text-decoration: none; padding: 10px 22px; border-radius: 8px; font-size: 12px; font-weight: 700; letter-spacing: 0.3px;">
+                    Open Online Pass Link →
+                  </a>
+                </div>
+              </div>
+            </td>
+          </tr>
+
+          ${instructionsBlock}
+
+          <!-- Footer -->
+          <tr>
+            <td style="background: #F8FAFC; border-top: 1px solid #E2E8F0; padding: 18px 24px; text-align: center;">
+              <p style="margin: 0 0 6px 0; font-size: 11px; font-weight: 700; color: #475569;">Graphic Era (Deemed to be University) • Official Entry Management</p>
+              <p style="margin: 0; font-size: 10px; color: #94A3B8;">Designed &amp; Developed by Department Of Computer Science and Engineering</p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
+export function parseTemplate(t) {
+  if (!t) return { name: "", subject: "", posterImage: "", instructions: "", isCodeMode: false, htmlBody: "" };
+
+  let posterImage = "";
+  let instructions = "";
+  let isCodeMode = false;
+
+  if (t.htmlBody) {
+    const configMatch = t.htmlBody.match(/<!-- TEMPLATE_CONFIG:\s*({.*?})\s*-->/s);
+    if (configMatch) {
+      try {
+        const parsed = JSON.parse(configMatch[1]);
+        posterImage = parsed.posterImage || "";
+        instructions = parsed.instructions || "";
+      } catch (e) {
+        console.error("Failed to parse template config", e);
+      }
+    } else {
+      isCodeMode = true;
+    }
+  }
+
+  return {
+    id: t.id,
+    name: t.name || "",
+    subject: t.subject || "",
+    posterImage,
+    instructions,
+    isCodeMode,
+    htmlBody: t.htmlBody || "",
+  };
+}
 
 export default function CampaignManagement({ activeEventId, onRedirectCleanup }) {
   const [activeTab, setActiveTab] = useState("monitor");
@@ -50,12 +223,25 @@ export default function CampaignManagement({ activeEventId, onRedirectCleanup })
     e.preventDefault();
     setLoading(true);
     try {
-      if (templateForm.id) {
-        await api.put(`/campaigns/templates/${templateForm.id}`, templateForm);
-        toast({ type: "success", message: "Template updated successfully." });
+      let finalHtmlBody = "";
+      if (templateForm.isCodeMode) {
+        finalHtmlBody = templateForm.htmlBody;
       } else {
-        await api.post(`/campaigns/templates`, { ...templateForm, eventId: activeEventId });
-        toast({ type: "success", message: "Template created successfully." });
+        finalHtmlBody = compilePassTemplateHtml(templateForm);
+      }
+
+      const payload = {
+        name: templateForm.name,
+        subject: templateForm.subject,
+        htmlBody: finalHtmlBody,
+      };
+
+      if (templateForm.id) {
+        await api.put(`/campaigns/templates/${templateForm.id}`, payload);
+        toast({ type: "success", message: "Pass template updated successfully." });
+      } else {
+        await api.post(`/campaigns/templates`, { ...payload, eventId: activeEventId });
+        toast({ type: "success", message: "Pass template created successfully." });
       }
       setTemplateForm(null);
       fetchTemplates();
@@ -194,60 +380,314 @@ export default function CampaignManagement({ activeEventId, onRedirectCleanup })
       {activeTab === 'templates' && (
         <div className="animate-fade-in">
           {templateForm ? (
-            <div className="card p-0 overflow-hidden border border-slate-300 shadow-sm mb-6 max-w-3xl mx-auto bg-white">
+            <div className="card p-0 overflow-hidden border border-slate-300 shadow-sm mb-6 max-w-5xl mx-auto bg-white">
               <div className="bg-[#8B151B] text-white px-6 py-4 flex items-center justify-between border-b-2 border-[#C59B27]">
-                <h3 className="text-sm font-bold flex items-center gap-2">
-                  <LayoutTemplate size={16} />
-                  <span>{templateForm.id ? "Edit Pass Template" : "New Email Pass Template"}</span>
-                </h3>
-                <button onClick={() => setTemplateForm(null)} className="text-white hover:bg-white/20 p-1 rounded transition-colors">
-                  <X size={16}/>
+                <div className="flex items-center gap-2">
+                  <LayoutTemplate size={18} />
+                  <div>
+                    <h3 className="text-sm font-bold">
+                      {templateForm.id ? "Edit Pass Template" : "New Visual Pass Template"}
+                    </h3>
+                    <p className="text-[11px] text-red-100 font-normal">
+                      Upload event poster, set entry instructions, and preview your verified QR pass in real-time.
+                    </p>
+                  </div>
+                </div>
+                <button onClick={() => setTemplateForm(null)} className="text-white hover:bg-white/20 p-1.5 rounded transition-colors">
+                  <X size={18}/>
                 </button>
               </div>
 
-              <form onSubmit={saveTemplate} className="p-6 space-y-4 text-xs">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="input-label">Template Name <span className="text-red-600">*</span></label>
-                    <input className="input" required value={templateForm.name} onChange={e => setTemplateForm({...templateForm, name: e.target.value})} placeholder="e.g. Grafest Official Pass" />
-                  </div>
-                  <div>
-                    <label className="input-label">Email Subject Line <span className="text-red-600">*</span></label>
-                    <input className="input" required value={templateForm.subject} onChange={e => setTemplateForm({...templateForm, subject: e.target.value})} placeholder="e.g. Graphic Era: Your Event Entry Pass" />
-                  </div>
-                </div>
+              <div className="grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-slate-200">
+                {/* Form Controls Column */}
+                <form onSubmit={saveTemplate} className="lg:col-span-7 p-6 space-y-4 text-xs flex flex-col justify-between">
+                  <div className="space-y-4">
+                    <div>
+                      <label className="input-label">Template Name <span className="text-red-600">*</span></label>
+                      <input 
+                        className="input font-medium" 
+                        required 
+                        value={templateForm.name} 
+                        onChange={e => setTemplateForm({...templateForm, name: e.target.value})} 
+                        placeholder="e.g. Engineering Freshers 2026 - Evolve Pass" 
+                      />
+                    </div>
 
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="input-label mb-0">HTML Content <span className="text-red-600">*</span></label>
-                    <div className="flex gap-1.5">
-                      {['{{name}}', '{{roll}}', '{{event_name}}', '{{qr_link}}'].map(tag => (
-                        <span key={tag} className="px-1.5 py-0.5 rounded bg-red-50 text-[#8B151B] text-[0.65rem] font-mono font-bold border border-red-200">{tag}</span>
-                      ))}
+                    <div>
+                      <label className="input-label">Email Subject Line <span className="text-red-600">*</span></label>
+                      <input 
+                        className="input font-medium" 
+                        required 
+                        value={templateForm.subject} 
+                        onChange={e => setTemplateForm({...templateForm, subject: e.target.value})} 
+                        placeholder="e.g. Official Entry Pass: Engineering Freshers 2026 - Evolve" 
+                      />
+                    </div>
+
+                    {!templateForm.isCodeMode ? (
+                      <>
+                        {/* Event Poster / Banner Image */}
+                        <div>
+                          <label className="input-label flex items-center justify-between">
+                            <span className="flex items-center gap-1.5 font-bold text-slate-700">
+                              <Image size={14} className="text-[#8B151B]" /> Event Poster / Banner Image
+                            </span>
+                            {templateForm.posterImage && (
+                              <button 
+                                type="button" 
+                                onClick={() => setTemplateForm({...templateForm, posterImage: ""})}
+                                className="text-red-600 hover:text-red-800 text-[11px] font-semibold"
+                              >
+                                Remove Poster
+                              </button>
+                            )}
+                          </label>
+
+                          {templateForm.posterImage ? (
+                            <div className="relative rounded-lg border border-slate-300 overflow-hidden bg-slate-900 group">
+                              <img 
+                                src={templateForm.posterImage} 
+                                alt="Uploaded poster" 
+                                className="w-full max-h-48 object-cover" 
+                              />
+                              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                                <label className="btn btn-secondary btn-xs cursor-pointer shadow-md">
+                                  <Upload size={12} className="mr-1" /> Change Image
+                                  <input 
+                                    type="file" 
+                                    accept="image/*" 
+                                    className="hidden" 
+                                    onChange={async (e) => {
+                                      if (e.target.files?.[0]) {
+                                        try {
+                                          const dataUrl = await compressPosterImage(e.target.files[0]);
+                                          setTemplateForm(prev => ({ ...prev, posterImage: dataUrl }));
+                                        } catch (err) {
+                                          toast({ type: "error", message: "Failed to load image." });
+                                        }
+                                      }
+                                    }} 
+                                  />
+                                </label>
+                                <button 
+                                  type="button" 
+                                  onClick={() => setTemplateForm({...templateForm, posterImage: ""})}
+                                  className="btn btn-secondary btn-xs text-red-600 shadow-md"
+                                >
+                                  <Trash2 size={12} className="mr-1" /> Remove
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <label className="border-2 border-dashed border-slate-300 hover:border-[#8B151B] bg-slate-50 hover:bg-red-50/20 rounded-lg p-5 flex flex-col items-center justify-center cursor-pointer transition-all text-center group">
+                              <div className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-[#8B151B] mb-2 group-hover:scale-105 transition-transform shadow-xs">
+                                <Upload size={18} />
+                              </div>
+                              <span className="font-bold text-slate-800 text-xs">Click to Upload Event Poster</span>
+                              <span className="text-slate-500 text-[11px] mt-0.5">PNG, JPG, or WEBP (Optimized automatically for email passes)</span>
+                              <input 
+                                type="file" 
+                                accept="image/*" 
+                                className="hidden" 
+                                onChange={async (e) => {
+                                  if (e.target.files?.[0]) {
+                                    try {
+                                      const dataUrl = await compressPosterImage(e.target.files[0]);
+                                      setTemplateForm(prev => ({ ...prev, posterImage: dataUrl }));
+                                    } catch (err) {
+                                      toast({ type: "error", message: "Failed to process image file." });
+                                    }
+                                  }
+                                }} 
+                              />
+                            </label>
+                          )}
+
+                          <div className="mt-2">
+                            <input 
+                              type="text" 
+                              className="input text-[11px] py-1.5 text-slate-600 placeholder:text-slate-400"
+                              placeholder="Or enter direct image URL (https://...)" 
+                              value={templateForm.posterImage?.startsWith("data:") ? "" : (templateForm.posterImage || "")}
+                              onChange={e => setTemplateForm({...templateForm, posterImage: e.target.value})}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Event Instructions & Guidelines */}
+                        <div>
+                          <label className="input-label flex items-center justify-between">
+                            <span className="font-bold text-slate-700">Event Instructions &amp; Guidelines</span>
+                            <span className="text-[10px] text-slate-400 font-normal">Plain text / bullet points</span>
+                          </label>
+                          <textarea 
+                            className="input text-xs text-slate-800 bg-slate-50 border-slate-300 focus:bg-white leading-relaxed" 
+                            rows={6} 
+                            value={templateForm.instructions || ""} 
+                            onChange={e => setTemplateForm({...templateForm, instructions: e.target.value})} 
+                            placeholder={"1. Reporting Time: 4:00 PM at Main Ground.\n2. Dress Code: Ethnic Wear.\n3. Entry strictly allowed on showing this verified QR pass & College ID card.\n4. Pass is strictly non-transferable."}
+                          />
+                          <p className="text-[11px] text-slate-500 mt-1">
+                            These instructions will be cleanly formatted into a highlighted box directly under the QR code in each student's pass.
+                          </p>
+                        </div>
+                      </>
+                    ) : (
+                      <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <label className="input-label mb-0">Raw HTML Code Mode <span className="text-red-600">*</span></label>
+                          <div className="flex gap-1">
+                            {['{{name}}', '{{roll}}', '{{event_name}}', '{{qr_code}}', '{{qr_link}}'].map(tag => (
+                              <span key={tag} className="px-1 py-0.5 rounded bg-red-50 text-[#8B151B] text-[0.6rem] font-mono font-bold border border-red-200">{tag}</span>
+                            ))}
+                          </div>
+                        </div>
+                        <textarea 
+                          className="input font-mono text-xs text-slate-800 bg-slate-50 border-slate-300 focus:bg-white" 
+                          required 
+                          rows={12} 
+                          value={templateForm.htmlBody} 
+                          onChange={e => setTemplateForm({...templateForm, htmlBody: e.target.value})} 
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="pt-4 border-t border-slate-200 flex items-center justify-between">
+                    <button 
+                      type="button" 
+                      className="text-[11px] text-slate-500 hover:text-slate-800 underline"
+                      onClick={() => setTemplateForm(prev => ({ ...prev, isCodeMode: !prev.isCodeMode }))}
+                    >
+                      {templateForm.isCodeMode ? "← Back to Visual Builder" : "Switch to Raw HTML Mode"}
+                    </button>
+
+                    <div className="flex gap-2">
+                      <button type="button" className="btn btn-secondary btn-sm" onClick={() => setTemplateForm(null)}>Cancel</button>
+                      <button type="submit" className="btn btn-primary btn-sm" disabled={loading}>
+                        {loading ? "Saving..." : "Save Template"}
+                      </button>
                     </div>
                   </div>
-                  <textarea 
-                    className="input font-mono text-xs text-slate-800 bg-slate-50 border-slate-300 focus:bg-white" 
-                    required 
-                    rows={10} 
-                    value={templateForm.htmlBody} 
-                    onChange={e => setTemplateForm({...templateForm, htmlBody: e.target.value})} 
-                    placeholder="<html><body><h1>Hello {{name}} (Roll: {{roll}})</h1><p>Your pass: {{qr_link}}</p></body></html>" 
-                  />
-                </div>
+                </form>
 
-                <div className="flex justify-end gap-3 pt-3 border-t border-slate-200">
-                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => setTemplateForm(null)}>Cancel</button>
-                  <button type="submit" className="btn btn-primary btn-sm" disabled={loading}>
-                    {loading ? "Saving..." : "Save Template"}
-                  </button>
+                {/* Live Email Pass Preview Column */}
+                <div className="lg:col-span-5 bg-slate-100/70 p-5 flex flex-col items-center justify-start">
+                  <div className="w-full mb-2 flex items-center justify-between text-slate-600 text-xs font-bold px-1">
+                    <span className="flex items-center gap-1.5">
+                      <Eye size={14} className="text-[#8B151B]" /> Live Email Pass Preview
+                    </span>
+                    <span className="text-[10px] uppercase tracking-wider bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-500 font-mono">
+                      Mobile Pass View
+                    </span>
+                  </div>
+
+                  {/* Email Pass Mockup Container */}
+                  <div className="w-full max-w-sm bg-white rounded-2xl border border-slate-300 shadow-sm overflow-hidden text-slate-800 font-sans">
+                    
+                    {/* Email Header Simulation */}
+                    <div className="bg-slate-50 px-3.5 py-2 border-b border-slate-200 text-[11px] text-slate-500 flex items-center gap-2">
+                      <span className="font-bold text-slate-700">Subject:</span>
+                      <span className="truncate">{templateForm.subject || "Official Event Entry Pass - Graphic Era"}</span>
+                    </div>
+
+                    {/* Poster or University Top Banner */}
+                    {templateForm.posterImage ? (
+                      <div className="w-full max-h-44 bg-slate-950 overflow-hidden border-b-2 border-[#8B151B]">
+                        <img 
+                          src={templateForm.posterImage} 
+                          alt="Banner preview" 
+                          className="w-full h-full object-cover" 
+                        />
+                      </div>
+                    ) : (
+                      <div className="bg-gradient-to-r from-[#8B151B] to-[#5E0E12] p-4 text-center text-white border-b-2 border-[#C59B27]">
+                        <div className="text-[9px] font-extrabold tracking-widest uppercase text-amber-300">
+                          GRAPHIC ERA (DEEMED TO BE UNIVERSITY)
+                        </div>
+                        <div className="font-serif font-bold text-sm text-white mt-1">
+                          {templateForm.name || "Event Entry Pass"}
+                        </div>
+                        <div className="text-[10px] text-red-200 mt-0.5">Official University Digital Ticket</div>
+                      </div>
+                    )}
+
+                    <div className="p-4 space-y-3.5">
+                      {/* Student Info Card */}
+                      <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex items-center justify-between">
+                        <div>
+                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Pass Holder</span>
+                          <span className="font-bold text-slate-900 text-xs block">Varun Dobhal</span>
+                          <span className="text-[11px] text-slate-500">Roll: <strong className="text-[#8B151B] font-mono">2115001</strong></span>
+                        </div>
+                        <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                          ● VALID PASS
+                        </span>
+                      </div>
+
+                      {/* Exactly ONE Prominent Entry QR Code */}
+                      <div className="bg-white border-2 border-dashed border-slate-300 rounded-xl p-4 text-center shadow-2xs">
+                        <span className="text-[9px] font-extrabold text-[#0D1038] uppercase tracking-widest block mb-2">
+                          SCAN AT GATE CHECKPOINT
+                        </span>
+                        <div className="inline-block p-2 bg-slate-50 border border-slate-200 rounded-xl shadow-xs">
+                          <div className="w-32 h-32 bg-white flex flex-col items-center justify-center border border-slate-100 rounded-lg p-1">
+                            {/* High visual fidelity QR icon simulation */}
+                            <div className="w-28 h-28 border-4 border-[#0D1038] p-1 flex flex-col justify-between rounded-sm">
+                              <div className="flex justify-between">
+                                <div className="w-7 h-7 bg-[#0D1038] p-1"><div className="w-full h-full bg-white p-0.5"><div className="w-full h-full bg-[#0D1038]"></div></div></div>
+                                <div className="w-7 h-7 bg-[#0D1038] p-1"><div className="w-full h-full bg-white p-0.5"><div className="w-full h-full bg-[#0D1038]"></div></div></div>
+                              </div>
+                              <div className="flex justify-center items-center py-1">
+                                <div className="w-8 h-4 bg-slate-300 rounded-xs flex items-center justify-center text-[7px] font-bold text-[#8B151B]">PASS</div>
+                              </div>
+                              <div className="flex justify-between">
+                                <div className="w-7 h-7 bg-[#0D1038] p-1"><div className="w-full h-full bg-white p-0.5"><div className="w-full h-full bg-[#0D1038]"></div></div></div>
+                                <div className="w-6 h-6 border-2 border-dashed border-slate-400 flex items-center justify-center text-[7px] font-mono font-bold">2115</div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="mt-2.5">
+                          <span className="inline-block bg-[#8B151B] text-white text-[10px] font-bold px-3 py-1 rounded-md shadow-xs">
+                            Open Online Pass Link →
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Event Instructions & Guidelines Block */}
+                      {templateForm.instructions?.trim() ? (
+                        <div className="bg-amber-50/80 border-l-4 border-amber-500 border-y border-r border-amber-200 rounded-lg p-3 text-left">
+                          <div className="text-[10px] font-extrabold text-amber-900 uppercase tracking-wide mb-1 flex items-center gap-1">
+                            📌 Important Instructions &amp; Guidelines
+                          </div>
+                          <div className="text-[11px] text-amber-950 whitespace-pre-wrap leading-relaxed">
+                            {templateForm.instructions.trim()}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="bg-slate-50 border border-slate-200 border-dashed rounded-lg p-3 text-center text-slate-400 text-[11px] italic">
+                          No extra instructions added yet. Enter instructions on the left to display event rules &amp; timings here.
+                        </div>
+                      )}
+
+                      {/* University Pass Footer */}
+                      <div className="pt-2 text-center border-t border-slate-100 text-[9px] text-slate-400">
+                        <p className="font-semibold text-slate-600 mb-0.5">Graphic Era (Deemed to be University) • Gate Entry</p>
+                        <p>Dept. Of Computer Science and Engineering</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </form>
+              </div>
             </div>
           ) : (
             <>
               <div className="flex justify-end mb-4">
-                <button className="btn btn-primary btn-sm" onClick={() => setTemplateForm({ name: "", subject: "", htmlBody: "" })}>
+                <button 
+                  className="btn btn-primary btn-sm" 
+                  onClick={() => setTemplateForm({ name: "", subject: "", posterImage: "", instructions: "", isCodeMode: false, htmlBody: "" })}
+                >
                   <Plus size={14} className="mr-1"/> Create Template
                 </button>
               </div>
@@ -256,33 +696,64 @@ export default function CampaignManagement({ activeEventId, onRedirectCleanup })
                 <EmptyState 
                   icon={LayoutTemplate} 
                   title="No Templates Configured" 
-                  description="Design HTML email templates for your Graphic Era event passes."
+                  description="Design visual email pass templates with poster images and instructions for your Graphic Era events."
                   actionLabel="Create First Template"
-                  onAction={() => setTemplateForm({ name: "", subject: "", htmlBody: "" })}
+                  onAction={() => setTemplateForm({ name: "", subject: "", posterImage: "", instructions: "", isCodeMode: false, htmlBody: "" })}
                 />
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                  {templates.map(t => (
-                    <div key={t.id} className="card p-4 bg-white border border-slate-300 shadow-xs hover:shadow-sm transition-all">
-                      <div className="flex items-center gap-2 text-[#8B151B] mb-2 font-bold text-sm">
-                        <FileCode2 size={16} />
-                        <h4 className="line-clamp-1">{t.name}</h4>
+                  {templates.map(t => {
+                    const meta = parseTemplate(t);
+                    return (
+                      <div key={t.id} className="card p-0 overflow-hidden bg-white border border-slate-300 shadow-xs hover:shadow-sm transition-all flex flex-col">
+                        {meta.posterImage ? (
+                          <div className="w-full h-32 bg-slate-900 overflow-hidden relative border-b border-slate-200">
+                            <img src={meta.posterImage} alt={t.name} className="w-full h-full object-cover" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-2.5">
+                              <span className="text-[10px] font-bold text-white uppercase tracking-wider bg-black/40 px-2 py-0.5 rounded backdrop-blur-xs">
+                                Banner Attached
+                              </span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="w-full h-20 bg-gradient-to-r from-[#8B151B] to-[#5E0E12] flex items-center justify-between px-4 border-b border-[#C59B27]">
+                            <div className="text-white">
+                              <span className="text-[9px] font-bold tracking-wider uppercase text-amber-300 block">Graphic Era</span>
+                              <span className="text-xs font-serif font-bold text-white">Default Pass Layout</span>
+                            </div>
+                            <LayoutTemplate size={24} className="text-white/40" />
+                          </div>
+                        )}
+                        
+                        <div className="p-4 flex-1 flex flex-col justify-between">
+                          <div>
+                            <div className="flex items-center gap-2 text-[#8B151B] mb-1.5 font-bold text-sm">
+                              <h4 className="line-clamp-1">{t.name}</h4>
+                            </div>
+                            <div className="bg-slate-50 rounded p-2 mb-2 border border-slate-200 text-xs">
+                              <span className="text-[0.65rem] font-bold text-slate-500 uppercase block mb-0.5">Subject:</span>
+                              <p className="text-slate-700 font-medium line-clamp-1">{t.subject}</p>
+                            </div>
+                            {meta.instructions && (
+                              <div className="text-[11px] text-slate-600 line-clamp-2 bg-amber-50/60 border border-amber-200/60 rounded p-1.5 mb-2">
+                                <span className="font-bold text-amber-900">Instructions: </span>
+                                {meta.instructions}
+                              </div>
+                            )}
+                          </div>
+                          
+                          <div className="flex items-center gap-2 pt-3 border-t border-slate-200 mt-2">
+                            <button className="btn btn-secondary btn-xs flex-1" onClick={() => setTemplateForm(parseTemplate(t))}>
+                              <Edit2 size={12} className="mr-1"/> Edit
+                            </button>
+                            <button className="btn btn-secondary btn-xs text-red-600 hover:bg-red-50 flex-1" onClick={() => setDeleteModal({ isOpen: true, templateId: t.id, isDeleting: false })}>
+                              <Trash2 size={12} className="mr-1"/> Delete
+                            </button>
+                          </div>
+                        </div>
                       </div>
-                      <div className="bg-slate-50 rounded p-2.5 mb-4 border border-slate-200 text-xs">
-                        <span className="text-[0.68rem] font-bold text-slate-500 uppercase block mb-0.5">Subject:</span>
-                        <p className="text-slate-700 font-medium line-clamp-1">{t.subject}</p>
-                      </div>
-                      
-                      <div className="flex items-center gap-2 pt-2 border-t border-slate-200">
-                        <button className="btn btn-secondary btn-xs flex-1" onClick={() => setTemplateForm(t)}>
-                          <Edit2 size={12} className="mr-1"/> Edit
-                        </button>
-                        <button className="btn btn-secondary btn-xs text-red-600 hover:bg-red-50 flex-1" onClick={() => setDeleteModal({ isOpen: true, templateId: t.id, isDeleting: false })}>
-                          <Trash2 size={12} className="mr-1"/> Delete
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </>

@@ -147,81 +147,175 @@ const sendQrEmail = async (attendee, event, qrCodeDataUrl, customMessage = "", t
 
     const { provider, instance } = await getProvider();
 
+    // 1. Generate high-resolution QR PNG buffer for reliable inline CID email embedding
+    const qrBuffer = await QRCode.toBuffer(attendee.qrLink, {
+      type: "png",
+      margin: 2,
+      width: 320,
+      errorCorrectionLevel: "H",
+    });
+    const qrBase64 = `data:image/png;base64,${qrBuffer.toString("base64")}`;
+
     const messageHtml = customMessage ? `
       <div style="background:#EEF2FF; padding:18px; border-radius:14px; margin-bottom:24px; border-left:5px solid #4F46E5; color:#3730A3; font-size:15px; line-height:1.7; white-space:pre-wrap; word-break:break-word;">
         ${customMessage}
       </div>
     ` : "";
 
-    let htmlContent = "";
-    
     // Server base URL for tracking pixel
     const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:5001";
     const trackingPixel = trackingId ? `<img src="${BACKEND_URL}/api/campaigns/track/${trackingId}" width="1" height="1" style="display:none;" />` : "";
 
+    // Dedicated, prominent QR Pass Block that is guaranteed to appear in all pass emails
+    const qrPassBlock = `
+      <div style="max-width: 460px; margin: 28px auto; background: #FFFFFF; border-radius: 16px; border: 2px dashed #94A3B8; padding: 24px; text-align: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; box-shadow: 0 4px 20px rgba(0,0,0,0.06);">
+        <div style="font-size: 11px; font-weight: 800; color: #0D1038; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 6px;">
+          OFFICIAL EVENT ENTRY PASS
+        </div>
+        <div style="font-size: 13px; color: #475569; margin-bottom: 14px;">
+          Pass Holder: <strong style="color: #0F172A;">${attendee.name || "Student"}</strong> | Roll: <strong style="color: #0F172A;">${attendee.roll || ""}</strong>
+        </div>
+        <div style="display: inline-block; padding: 12px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+          <img src="cid:entry-pass-qr" alt="Entry Pass QR" width="220" height="220" style="display: block; margin: 0 auto; width: 220px; height: 220px; border-radius: 8px;" />
+        </div>
+        <div style="margin-top: 12px;">
+          <span style="display: inline-block; padding: 4px 14px; background: #DCFCE7; color: #166534; font-size: 10px; font-weight: 800; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.5px;">
+            ● VERIFIED ENTRY TICKET
+          </span>
+        </div>
+        <div style="margin-top: 16px;">
+          <a href="${attendee.qrLink}" style="display: inline-block; background: #A31D24; color: #FFFFFF; text-decoration: none; padding: 10px 24px; border-radius: 8px; font-size: 13px; font-weight: 700;">
+            View Online Digital Pass →
+          </a>
+        </div>
+      </div>
+    `;
+
+    let htmlContent = "";
+
     if (template) {
       htmlContent = template.htmlBody
         .replace(/{{name}}/g, attendee.name || "")
-        .replace(/{{event_name}}/g, event.name || "")
-        .replace(/{{event_type}}/g, event.type || "")
-        .replace(/{{event_date}}/g, new Date(event.date).toLocaleDateString())
-        .replace(/{{event_venue}}/g, event.venue || "")
-        .replace(/{{qr_code}}/g, `<img src="cid:qrcode" alt="QR Code" style="width:240px; height:240px;" />`)
+        .replace(/{{roll}}/g, attendee.roll || "")
+        .replace(/{{event_name}}/g, event?.name || "")
+        .replace(/{{event_type}}/g, event?.type || "")
+        .replace(/{{event_date}}/g, event?.date ? new Date(event.date).toLocaleDateString() : "")
+        .replace(/{{event_venue}}/g, event?.venue || "")
+        .replace(/{{qr_code}}/g, `<img src="cid:entry-pass-qr" alt="Entry Pass QR" width="220" height="220" style="display:block; margin:0 auto; width:220px; height:220px; border-radius:8px;" />`)
+        .replace(/cid:qrcode/g, "cid:entry-pass-qr")
         .replace(/{{qr_link}}/g, attendee.qrLink || "");
-        
+
+      // If template did NOT include a QR code placeholder, inject the official QR pass block!
+      if (!htmlContent.includes("cid:entry-pass-qr")) {
+        if (htmlContent.includes("</body>")) {
+          htmlContent = htmlContent.replace("</body>", `${qrPassBlock}</body>`);
+        } else {
+          htmlContent += qrPassBlock;
+        }
+      }
       htmlContent += trackingPixel;
     } else {
       htmlContent = `
-        <div style="font-family:Arial,sans-serif; text-align:center; padding: 20px;">
-          ${messageHtml || `<p style="font-size: 16px;">Here is your Entry Pass for <strong>${event.name}</strong></p>`}
-          <div style="margin: 20px 0;">
-            <img src="cid:qrcode" alt="QR Code" style="width:240px; height:240px; display:inline-block;" />
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; text-align: center; padding: 24px; max-width: 520px; margin: 0 auto;">
+          <div style="border-bottom: 2px solid #A31D24; padding-bottom: 12px; margin-bottom: 20px;">
+            <h2 style="color: #A31D24; margin: 0; font-size: 18px;">Graphic Era (Deemed to be University)</h2>
+            <p style="color: #64748B; font-size: 12px; margin: 4px 0 0;">Official Event Entry & Gate Pass Management</p>
           </div>
-          <p style="font-size: 14px; color: #666;">Scan this QR code at the entry gate.</p>
-          <p style="font-size: 12px; margin-top: 30px;"><a href="${attendee.qrLink}">View Pass Online</a></p>
+          ${messageHtml || `<h3 style="color: #0D1038; margin: 0 0 16px; font-size: 16px;">Here is your Entry Pass for <strong>${event?.name || "the Event"}</strong></h3>`}
+          ${qrPassBlock}
+          <p style="font-size: 12px; color: #94A3B8; margin-top: 24px;">Please present this pass at the gate. Designed & Developed by Department Of Computer Science and Engineering.</p>
         </div>
         ${trackingPixel}
       `;
     }
 
-    if (!htmlContent.toLowerCase().includes('<html')) {
+    if (!htmlContent.toLowerCase().includes("<html")) {
       htmlContent = `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
-<body style="margin:0; padding:0;">
+<body style="margin:0; padding:0; background:#F8FAFC;">
   ${htmlContent}
 </body>
 </html>`;
     }
-    
-    // Inject the QR Code as a direct HTTP URL instead of an attachment! 
-    // This perfectly bypasses Resend and Gmail's strict CID restrictions, showing the image 100% of the time.
-    const externalQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(attendee.qrLink)}`;
-    htmlContent = htmlContent.replace(/cid:qrcode/g, externalQrUrl);
+
+    // Convert any inline base64 images (e.g. uploaded posters) into CID attachments
+    // because Gmail and webmail clients block raw data:image/... URIs
+    const extraAttachments = [];
+    const base64ImgRegex = /src=["'](data:(image\/[a-zA-Z+]+);base64,([A-Za-z0-9+/=]+))["']/gi;
+    let imgIndex = 1;
+    htmlContent = htmlContent.replace(base64ImgRegex, (fullMatch, dataUri, mimeType, base64Data) => {
+      const cid = `embedded-img-${imgIndex++}`;
+      try {
+        const buf = Buffer.from(base64Data, "base64");
+        const ext = mimeType.split("/")[1] || "png";
+        extraAttachments.push({
+          filename: `image-${imgIndex}.${ext}`,
+          content: buf,
+          cid: cid,
+          contentType: mimeType,
+          contentDisposition: "inline",
+        });
+        return `src="cid:${cid}"`;
+      } catch (err) {
+        console.error("Failed to parse embedded image data URI:", err);
+        return fullMatch;
+      }
+    });
 
     let response;
-    
+
     if (provider.name === "RESEND") {
+      // For Resend API, replace cid with data URI for native rendering
+      let resendHtml = htmlContent.replace(/cid:entry-pass-qr/g, qrBase64);
+      extraAttachments.forEach((att) => {
+        resendHtml = resendHtml.replace(
+          new RegExp(`cid:${att.cid}`, "g"),
+          `data:${att.contentType};base64,${att.content.toString("base64")}`
+        );
+      });
+
       const res = await instance.emails.send({
         from: provider.senderEmail,
         to: attendee.email,
-        subject: template ? template.subject : `Your ${event.type} Entry QR Code`,
-        html: htmlContent,
+        subject: template ? template.subject : `Official Entry Pass: ${event?.name || "Event"} - Graphic Era`,
+        html: resendHtml,
+        attachments: [
+          {
+            filename: "entry-pass-qr.png",
+            content: qrBuffer.toString("base64"),
+          },
+          ...extraAttachments.map((att) => ({
+            filename: att.filename,
+            content: att.content.toString("base64"),
+          })),
+        ],
       });
-      
+
       if (res.error) {
         throw new Error(res.error.message || JSON.stringify(res.error));
       }
       response = res.data;
     } else {
+      // For Nodemailer (AWS SES, SMTP, Google), attach via CID inline attachment
       response = await instance.sendMail({
         from: provider.senderEmail,
         to: attendee.email,
-        subject: template ? template.subject : `Your ${event.type} Entry QR Code`,
+        subject: template ? template.subject : `Official Entry Pass: ${event?.name || "Event"} - Graphic Era`,
         html: htmlContent,
+        attachments: [
+          {
+            filename: "entry-pass-qr.png",
+            content: qrBuffer,
+            cid: "entry-pass-qr",
+            contentType: "image/png",
+            contentDisposition: "inline",
+          },
+          ...extraAttachments,
+        ],
       });
     }
 
