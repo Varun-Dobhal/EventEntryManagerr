@@ -44,7 +44,12 @@ export default function VolunteerScanner({ role, onLogout }) {
   const [activeEvent, setActiveEvent] = useState(null);
   const [checkpoints, setCheckpoints] = useState([]);
   const [selectedCheckpoint, setSelectedCheckpoint] = useState(null);
+  const selectedCheckpointRef = useRef(null);
   const [showCpSelect, setShowCpSelect] = useState(false);
+
+  useEffect(() => {
+    selectedCheckpointRef.current = selectedCheckpoint;
+  }, [selectedCheckpoint]);
 
   // Haptic flash state
   const [flash, setFlash] = useState(null); // 'success' | 'error' | null
@@ -92,8 +97,20 @@ export default function VolunteerScanner({ role, onLogout }) {
       setActiveEvent(data);
       if (data.checkpoints && data.checkpoints.length > 0) {
         setCheckpoints(data.checkpoints);
-        const activeCp = data.checkpoints.find(c => c.isActive);
-        if (activeCp) setSelectedCheckpoint(activeCp);
+        // Smart matching by volunteer role:
+        let activeCp = null;
+        if (role === 'FOOD_VOLUNTEER') {
+          activeCp = data.checkpoints.find(c => c.isActive && c.name.toLowerCase().includes('food'))
+                  || data.checkpoints.find(c => c.isActive && c.order > 1)
+                  || data.checkpoints.find(c => c.isActive);
+        } else {
+          activeCp = data.checkpoints.find(c => c.isActive && (c.name.toLowerCase().includes('entry') || c.name.toLowerCase().includes('gate')))
+                  || data.checkpoints.find(c => c.isActive);
+        }
+        if (activeCp) {
+          setSelectedCheckpoint(activeCp);
+          selectedCheckpointRef.current = activeCp;
+        }
       }
     } catch (err) {
       console.error("Failed to fetch active event", err);
@@ -328,8 +345,15 @@ export default function VolunteerScanner({ role, onLogout }) {
     }, 400);
   };
 
+  const changeCheckpoint = (cp) => {
+    setSelectedCheckpoint(cp);
+    selectedCheckpointRef.current = cp;
+    setShowCpSelect(false);
+  };
+
   const handleVerifyQR = async (rawToken) => {
-    if (!selectedCheckpoint) {
+    const currentCp = selectedCheckpointRef.current || selectedCheckpoint;
+    if (!currentCp) {
       toast({ type: 'warning', message: 'Please select a checkpoint first!' });
       readyForNext();
       return;
@@ -345,7 +369,7 @@ export default function VolunteerScanner({ role, onLogout }) {
     try {
       const { data } = await api.post('/attendees/scan', { 
         token, 
-        checkpointId: selectedCheckpoint.id,
+        checkpointId: currentCp.id,
         type: role === 'FOOD_VOLUNTEER' ? 'food' : 'entry'
       });
       
@@ -390,7 +414,8 @@ export default function VolunteerScanner({ role, onLogout }) {
 
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
-    if (!selectedCheckpoint) {
+    const currentCp = selectedCheckpointRef.current || selectedCheckpoint;
+    if (!currentCp) {
       toast({ type: 'warning', message: 'Please select a checkpoint first!' });
       return;
     }
@@ -399,11 +424,11 @@ export default function VolunteerScanner({ role, onLogout }) {
       return;
     }
     setLoading(true); setScanResult(null); setErrorMsg(null);
-    try {
+    try { 
       const { data } = await api.post('/otp/verify', { 
         roll: roll.trim(), 
         otp: otp.trim(), 
-        checkpointId: selectedCheckpoint.id,
+        checkpointId: currentCp.id,
         type: role === 'FOOD_VOLUNTEER' ? 'food' : 'entry' 
       });
 
@@ -411,7 +436,7 @@ export default function VolunteerScanner({ role, onLogout }) {
       if (data.token && !data.admitted) {
         await api.post('/attendees/scan', { 
           token: data.token, 
-          checkpointId: selectedCheckpoint.id,
+          checkpointId: currentCp.id,
           type: role === 'FOOD_VOLUNTEER' ? 'food' : 'entry'
         });
       }
@@ -492,7 +517,7 @@ export default function VolunteerScanner({ role, onLogout }) {
                       checkpoints.filter(c => c.isActive).map(cp => (
                         <button 
                           key={cp.id}
-                          onClick={() => { setSelectedCheckpoint(cp); setShowCpSelect(false); }}
+                          onClick={() => changeCheckpoint(cp)}
                           className={`w-full text-left px-3 py-1.5 rounded text-xs font-bold transition-all ${
                             selectedCheckpoint?.id === cp.id 
                               ? 'bg-blue-50 text-[#1E2A78] font-black' 
@@ -784,7 +809,7 @@ export default function VolunteerScanner({ role, onLogout }) {
                       <button
                         key={cp.id}
                         type="button"
-                        onClick={() => setSelectedCheckpoint(cp)}
+                        onClick={() => changeCheckpoint(cp)}
                         className="px-3 py-1.5 rounded-xl bg-white border border-amber-300 font-bold text-amber-900 hover:bg-amber-100/80 transition-colors shadow-2xs cursor-pointer"
                       >
                         {cp.name}

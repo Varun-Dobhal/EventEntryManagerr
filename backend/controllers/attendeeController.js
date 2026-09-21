@@ -49,11 +49,34 @@ exports.scanAttendee = async (req, res) => {
       const event = attendee.event;
       if (!event) return { status: 400, payload: { error: "Attendee is not associated with an event." } };
 
-      if (checkpointId) {
-        const cp = event.checkpoints.find(c => c.id === parseInt(checkpointId));
-        if (!cp || !cp.isActive) {
-          await logScan(tx, { type, checkpointId: parseInt(checkpointId), attendeeId: attendee.id, success: false, resultCode: "INVALID_CHECKPOINT", ip, userAgent });
-          return { status: 400, payload: { error: "Invalid or inactive checkpoint." } };
+      // SMART CHECKPOINT RESOLUTION:
+      // If volunteer is FOOD_VOLUNTEER or type is "food":
+      // Guarantee that we target the Food checkpoint (not the Entry checkpoint), even if the frontend sent a stale/mismatched checkpointId!
+      let cp = null;
+      const isFoodScan = type === "food" || req.user?.role === "FOOD_VOLUNTEER";
+      const isEntryScan = type === "entry" || req.user?.role === "ENTRY_VOLUNTEER";
+
+      if (event.checkpoints && event.checkpoints.length > 0) {
+        if (isFoodScan) {
+          // Look for food checkpoint
+          cp = event.checkpoints.find(c => c.isActive && c.name.toLowerCase().includes("food"))
+            || (checkpointId ? event.checkpoints.find(c => c.id === parseInt(checkpointId) && c.isActive) : null)
+            || event.checkpoints.find(c => c.isActive && c.order > 1)
+            || event.checkpoints[event.checkpoints.length - 1];
+        } else if (isEntryScan) {
+          // Look for entry checkpoint
+          cp = (checkpointId ? event.checkpoints.find(c => c.id === parseInt(checkpointId) && c.isActive) : null)
+            || event.checkpoints.find(c => c.isActive && (c.name.toLowerCase().includes("entry") || c.name.toLowerCase().includes("gate")))
+            || event.checkpoints[0];
+        } else if (checkpointId) {
+          cp = event.checkpoints.find(c => c.id === parseInt(checkpointId));
+        }
+      }
+
+      if (cp) {
+        if (!cp.isActive) {
+          await logScan(tx, { type, checkpointId: cp.id, attendeeId: attendee.id, success: false, resultCode: "INVALID_CHECKPOINT", ip, userAgent });
+          return { status: 400, payload: { error: `Checkpoint "${cp.name}" is currently inactive.` } };
         }
 
         const existingStatus = await tx.checkpointStatus.findUnique({
@@ -62,7 +85,8 @@ exports.scanAttendee = async (req, res) => {
 
         if (existingStatus && existingStatus.status) {
           await logScan(tx, { type, checkpointId: cp.id, attendeeId: attendee.id, success: false, resultCode: "ALREADY_SCANNED", ip, userAgent });
-          return { status: 400, payload: { error: `${attendee.name} has already been scanned at ${cp.name}.` } };
+          const actionWord = cp.name.toLowerCase().includes("food") ? "collected food" : "been scanned";
+          return { status: 400, payload: { error: `${attendee.name} has already ${actionWord} at ${cp.name}.` } };
         }
 
         if (event.isSequential) {
@@ -74,7 +98,7 @@ exports.scanAttendee = async (req, res) => {
             });
             if (!prevStatus || !prevStatus.status) {
               await logScan(tx, { type, checkpointId: cp.id, attendeeId: attendee.id, success: false, resultCode: "OUT_OF_SEQUENCE", ip, userAgent });
-              return { status: 400, payload: { error: `Out of sequence: Please scan at ${previousCp.name} first.` } };
+              return { status: 400, payload: { error: `Out of sequence: ${attendee.name} must scan at ${previousCp.name} first before ${cp.name}.` } };
             }
           }
         }
@@ -85,7 +109,19 @@ exports.scanAttendee = async (req, res) => {
           create: { attendeeId: attendee.id, checkpointId: cp.id, status: true, scannedAt: new Date(), scannedById: req.user?.id }
         });
 
-        await logScan(tx, { type, checkpointId: cp.id, attendeeId: attendee.id, success: true, resultCode: "ALLOWED", ip, userAgent });
+        // Keep attendee root flags in sync
+        const isCpFood = cp.name.toLowerCase().includes("food") || type === "food";
+        const isCpEntry = cp.name.toLowerCase().includes("entry") || cp.name.toLowerCase().includes("gate") || type === "entry";
+
+        await tx.attendee.update({
+          where: { id: attendee.id },
+          data: {
+            ...(isCpEntry ? { entryStatus: true, entryScannedAt: new Date() } : {}),
+            ...(isCpFood ? { foodStatus: true, foodScannedAt: new Date() } : {})
+          }
+        });
+
+        await logScan(tx, { type: isCpFood ? "food" : "entry", checkpointId: cp.id, attendeeId: attendee.id, success: true, resultCode: "ALLOWED", ip, userAgent });
         return { status: 200, payload: { message: `Successfully scanned at ${cp.name}!`, attendee: { name: attendee.name, roll: attendee.roll } } };
       }
 
