@@ -14,9 +14,12 @@ import {
   Hash,
   Send,
   Camera,
+  CameraOff,
   CheckCircle2,
   MapPin,
-  ArrowRight
+  ArrowRight,
+  Copy,
+  UploadCloud
 } from 'lucide-react';
 import api from '../utils/api';
 import { useToast } from '../context/ToastContext';
@@ -26,6 +29,8 @@ import logoImg from '../assets/logo.png';
 
 export default function VolunteerScanner({ role, onLogout }) {
   const [permState, setPermState]   = useState('asking');
+  const [permReason, setPermReason] = useState('');
+  const [showHttpGuide, setShowHttpGuide] = useState(false);
   const [scanResult, setScanResult] = useState(null);
   const [errorMsg, setErrorMsg]     = useState(null);
   const [loading, setLoading]       = useState(false);
@@ -83,13 +88,105 @@ export default function VolunteerScanner({ role, onLogout }) {
 
   const initCamera = async () => {
     setPermState('asking');
+    setPermReason('');
+
+    // Check for MediaDevices & getUserMedia support
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      const isInsecure = window.location.protocol === 'http:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+      if (isInsecure) {
+        setPermState('insecure');
+        setPermReason('Browsers restrict live camera video feeds over non-secure HTTP connections.');
+        return;
+      }
+      setPermState('denied');
+      setPermReason('Camera API is not supported on this browser or device.');
+      return;
+    }
+
     try {
-      const constraints = { video: { facingMode: 'environment' }, audio: false };
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      let stream = null;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: 'environment' } },
+          audio: false
+        });
+      } catch (err1) {
+        // Fallback to any available webcam (e.g. laptop front camera)
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: false
+        });
+      }
+
       streamRef.current = stream;
-      if (videoRef.current) { videoRef.current.srcObject = stream; videoRef.current.play().catch(() => {}); }
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play().catch(e => console.warn('Video play caught:', e));
+      }
       setPermState('granted');
-    } catch { setPermState('denied'); }
+    } catch (err) {
+      console.error('Camera initialization failed:', err);
+      setPermState('denied');
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        setPermReason('Camera permission was blocked. Please allow camera in browser address bar settings.');
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        setPermReason('No camera hardware found on this device.');
+      } else {
+        setPermReason(err.message || 'Unable to access camera.');
+      }
+    }
+  };
+
+  const handleImageFileScan = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setLoading(true);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new window.Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const maxDim = 1200;
+        let w = img.width;
+        let h = img.height;
+        if (w > maxDim || h > maxDim) {
+          if (w > h) {
+            h = Math.round((h * maxDim) / w);
+            w = maxDim;
+          } else {
+            w = Math.round((w * maxDim) / h);
+            h = maxDim;
+          }
+        }
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d", { willReadFrequently: true });
+        ctx.drawImage(img, 0, 0, w, h);
+        const imgData = ctx.getImageData(0, 0, w, h);
+        const code = jsQR(imgData.data, imgData.width, imgData.height, {
+          inversionAttempts: "dontInvert",
+        });
+
+        setLoading(false);
+        if (code?.data) {
+          isScanRef.current = true;
+          handleVerifyQR(code.data);
+        } else {
+          toast({
+            type: "error",
+            message: "No valid QR pass detected in image. Please try again or use Roll OTP.",
+          });
+        }
+      };
+      img.onerror = () => {
+        setLoading(false);
+        toast({ type: "error", message: "Failed to load image file." });
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
   };
 
   const stopCamera = () => {
@@ -319,16 +416,34 @@ export default function VolunteerScanner({ role, onLogout }) {
       </div>
 
       {/* ── Scanner Viewport ─────────────────────────────────────────── */}
-      <div className="flex-1 relative overflow-hidden bg-slate-900">
+      <div className="flex-1 relative overflow-hidden bg-slate-950 flex flex-col items-center justify-center">
         {!useOtp && (
-          <div className="absolute inset-0">
-            <video ref={videoRef} onLoadedData={onVideoReady} className="w-full h-full object-cover" playsInline muted autoPlay/>
+          <div className="absolute inset-0 flex items-center justify-center">
+            {/* Hidden file input for Photo Snap & QR scanning */}
+            <input 
+              type="file" 
+              accept="image/*" 
+              capture="environment" 
+              id="qr-snap-input" 
+              className="hidden" 
+              onChange={handleImageFileScan} 
+            />
+
+            {/* Video element is always rendered so videoRef is attached */}
+            <video 
+              ref={videoRef} 
+              onLoadedData={onVideoReady} 
+              className={`w-full h-full object-cover ${permState === 'granted' ? 'block' : 'hidden'}`} 
+              playsInline 
+              muted 
+              autoPlay
+            />
             <canvas ref={canvasRef} className="hidden"/>
-            
-            {/* Viewfinder Overlay with Graphic Era Gold Reticle */}
+
+            {/* 1. Viewfinder Overlay when Camera is Active */}
             {permState === 'granted' && !showResult && !loading && (
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-10">
-                <div className="w-64 h-64 border-2 border-white/30 rounded-2xl relative flex items-center justify-center shadow-[0_0_0_9999px_rgba(15,23,42,0.6)]">
+                <div className="w-64 h-64 border-2 border-white/30 rounded-2xl relative flex items-center justify-center shadow-[0_0_0_9999px_rgba(15,23,42,0.65)]">
                   {/* Animated Gold Scan Line */}
                   <div className="scan-line" style={{ background: '#FFB800', boxShadow: '0 0 10px rgba(255, 184, 0, 0.9)' }} />
                   {/* Corner marks */}
@@ -340,11 +455,149 @@ export default function VolunteerScanner({ role, onLogout }) {
                 <div className="mt-6 bg-[#0D1038] border border-[#FFB800]/50 text-white px-5 py-1.5 rounded-full shadow-lg text-xs font-bold tracking-wide uppercase">
                   Align Student QR Pass
                 </div>
+
+                {/* Quick snap fallback button at bottom */}
+                <div className="absolute bottom-6 pointer-events-auto flex items-center gap-3">
+                  <label 
+                    htmlFor="qr-snap-input" 
+                    className="flex items-center gap-1.5 bg-black/60 hover:bg-black/80 backdrop-blur-md text-white border border-white/20 px-4 py-2 rounded-full text-xs font-bold cursor-pointer transition-all shadow-md"
+                  >
+                    <Camera size={14} className="text-[#FFB800]" /> Snap Photo
+                  </label>
+                  <button 
+                    onClick={() => setUseOtp(true)} 
+                    className="flex items-center gap-1.5 bg-black/60 hover:bg-black/80 backdrop-blur-md text-white border border-white/20 px-4 py-2 rounded-full text-xs font-bold cursor-pointer transition-all shadow-md"
+                  >
+                    <Lock size={13} className="text-[#FFB800]" /> Roll OTP
+                  </button>
+                </div>
               </div>
             )}
 
+            {/* 2. Insecure Context Warning (Over plain HTTP on remote IP) */}
+            {permState === 'insecure' && !showResult && (
+              <div className="relative z-10 w-full max-w-md p-6 mx-4 text-center bg-slate-900/95 border border-amber-500/40 rounded-3xl backdrop-blur-xl shadow-2xl text-white animate-fade-in">
+                <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto mb-3.5 shadow-xs">
+                  <CameraOff size={28} />
+                </div>
+
+                <h3 className="text-lg font-bold text-white mb-1.5">
+                  Live Camera Blocked by Browser (HTTP)
+                </h3>
+                <p className="text-xs text-slate-300 mb-5 leading-relaxed">
+                  Browsers require a secure connection (HTTPS) for continuous live video feeds. 
+                  You can scan passes instantly using the phone camera button below or use Roll OTP!
+                </p>
+
+                <div className="space-y-2.5">
+                  <label 
+                    htmlFor="qr-snap-input" 
+                    className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-gradient-to-r from-[#FFB800] to-amber-500 text-slate-950 font-black text-sm cursor-pointer shadow-lg hover:brightness-105 active:scale-98 transition-all"
+                  >
+                    <Camera size={18} />
+                    <span>Take Photo &amp; Scan Pass</span>
+                  </label>
+
+                  <button 
+                    type="button" 
+                    onClick={() => setUseOtp(true)} 
+                    className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-xs cursor-pointer transition-all"
+                  >
+                    <Lock size={14} className="text-amber-400" />
+                    <span>Use Manual Roll Number &amp; OTP</span>
+                  </button>
+                </div>
+
+                {/* Chrome HTTP Permission Guide */}
+                <div className="mt-5 pt-4 border-t border-slate-800 text-left">
+                  <button 
+                    type="button" 
+                    onClick={() => setShowHttpGuide(v => !v)}
+                    className="w-full flex items-center justify-between text-[11px] font-bold text-amber-400 hover:text-amber-300"
+                  >
+                    <span>How to enable continuous Live Camera on Chrome?</span>
+                    <span>{showHttpGuide ? "▲" : "▼"}</span>
+                  </button>
+                  
+                  {showHttpGuide && (
+                    <div className="mt-2.5 p-3 rounded-lg bg-slate-950 border border-slate-800 text-[11px] text-slate-300 space-y-2">
+                      <p>1. In Chrome, open: <code className="text-amber-300 font-mono bg-slate-800 px-1 py-0.5 rounded">chrome://flags/#unsafely-treat-insecure-origin-as-secure</code></p>
+                      <p>2. Enable the flag and paste: <code className="text-emerald-400 font-mono bg-slate-800 px-1 py-0.5 rounded">http://3.109.178.209</code></p>
+                      <p>3. Tap <strong>Relaunch Chrome</strong>. Live camera scanning will be active!</p>
+                      <button 
+                        type="button" 
+                        onClick={() => {
+                          navigator.clipboard.writeText("http://3.109.178.209");
+                          toast({ type: 'success', message: 'Copied http://3.109.178.209 to clipboard!' });
+                        }}
+                        className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-400 hover:underline pt-1"
+                      >
+                        <Copy size={11} /> Copy Server URL
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* 3. Camera Permission Denied / Error */}
+            {permState === 'denied' && !showResult && (
+              <div className="relative z-10 w-full max-w-md p-6 mx-4 text-center bg-slate-900/95 border border-red-500/40 rounded-3xl backdrop-blur-xl shadow-2xl text-white animate-fade-in">
+                <div className="w-14 h-14 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-400 flex items-center justify-center mx-auto mb-3.5 shadow-xs">
+                  <CameraOff size={28} />
+                </div>
+
+                <h3 className="text-lg font-bold text-white mb-1.5">
+                  Camera Access Not Available
+                </h3>
+                <p className="text-xs text-slate-300 mb-5 leading-relaxed">
+                  {permReason || "Camera permission is blocked or no camera was found on this device."}
+                </p>
+
+                <div className="space-y-2.5">
+                  <button 
+                    type="button" 
+                    onClick={initCamera} 
+                    className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-gradient-to-r from-[#FFB800] to-amber-500 text-slate-950 font-black text-sm cursor-pointer shadow-lg hover:brightness-105 transition-all"
+                  >
+                    <RefreshCw size={16} />
+                    <span>Try Again / Grant Permission</span>
+                  </button>
+
+                  <label 
+                    htmlFor="qr-snap-input" 
+                    className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-xs cursor-pointer transition-all"
+                  >
+                    <Camera size={14} className="text-amber-400" />
+                    <span>Take Photo &amp; Scan Pass</span>
+                  </label>
+
+                  <button 
+                    type="button" 
+                    onClick={() => setUseOtp(true)} 
+                    className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-xs cursor-pointer transition-all"
+                  >
+                    <Lock size={14} className="text-amber-400" />
+                    <span>Use Manual Roll Number &amp; OTP</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* 4. Requesting Permission */}
+            {permState === 'asking' && !showResult && (
+              <div className="relative z-10 flex flex-col items-center justify-center p-6 text-center text-white">
+                <div className="w-14 h-14 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center mb-3 animate-pulse text-[#FFB800]">
+                  <Camera size={28} />
+                </div>
+                <h3 className="text-sm font-bold text-white mb-1">Starting Camera...</h3>
+                <p className="text-xs text-slate-400">Please tap "Allow" if prompted for camera permission.</p>
+              </div>
+            )}
+
+            {/* 5. Loading overlay */}
             {loading && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/80 backdrop-blur-sm z-20 text-white">
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/85 backdrop-blur-sm z-20 text-white">
                 <div className="w-12 h-12 rounded-full border-4 border-white/20 border-t-[#FFB800] animate-spin mb-3" />
                 <p className="font-bold text-sm text-[#FFB800] uppercase tracking-wider">Verifying with Server...</p>
               </div>
