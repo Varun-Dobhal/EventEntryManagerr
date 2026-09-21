@@ -212,6 +212,7 @@ const sendQrEmail = async (attendee, event, qrCodeDataUrl, customMessage = "", t
         .replace(/{{event_type}}/g, event?.type || "")
         .replace(/{{event_date}}/g, event?.date ? new Date(event.date).toLocaleDateString() : "")
         .replace(/{{event_venue}}/g, event?.venue || "")
+        .replace(/src=["']\{\{qr_code\}\}["']/gi, 'src="cid:entry-pass-qr"')
         .replace(/{{qr_code}}/g, `<img src="cid:entry-pass-qr" alt="Entry Pass QR" width="220" height="220" style="display:block; margin:0 auto; width:220px; height:220px; border-radius:8px;" />`)
         .replace(/cid:qrcode/g, "cid:entry-pass-qr")
         .replace(/{{qr_link}}/g, attendee.qrLink || "");
@@ -253,21 +254,26 @@ const sendQrEmail = async (attendee, event, qrCodeDataUrl, customMessage = "", t
 </html>`;
     }
 
-    // Convert any inline base64 images (e.g. uploaded posters) into CID attachments
-    // because Gmail and webmail clients block raw data:image/... URIs
+    // Convert any inline base64 images (e.g. uploaded posters, event banners) into CID attachments
+    // so that Gmail, Apple Mail, and mobile clients render them properly instead of blocking data URIs
     const extraAttachments = [];
-    const base64ImgRegex = /src=["'](data:(image\/[a-zA-Z+]+);base64,([A-Za-z0-9+/=]+))["']/gi;
+    const base64ImgRegex = /src=["'](data:(image\/[a-zA-Z0-9.+_-]+);base64,([^"']+))["']/gi;
     let imgIndex = 1;
     htmlContent = htmlContent.replace(base64ImgRegex, (fullMatch, dataUri, mimeType, base64Data) => {
       const cid = `embedded-img-${imgIndex++}`;
       try {
-        const buf = Buffer.from(base64Data, "base64");
-        const ext = mimeType.split("/")[1] || "png";
+        const cleanBase64 = base64Data.replace(/\s/g, "");
+        const buf = Buffer.from(cleanBase64, "base64");
+        const ext = (mimeType.split("/")[1] || "png").replace("+xml", "");
         extraAttachments.push({
-          filename: `image-${imgIndex}.${ext}`,
+          filename: `event-banner-${imgIndex}.${ext}`,
           content: buf,
+          base64: cleanBase64,
           cid: cid,
+          contentId: cid,
+          content_id: cid,
           contentType: mimeType,
+          content_type: mimeType,
           contentDisposition: "inline",
         });
         return `src="cid:${cid}"`;
@@ -280,30 +286,31 @@ const sendQrEmail = async (attendee, event, qrCodeDataUrl, customMessage = "", t
     let response;
 
     if (provider.name === "RESEND") {
-      // For Resend API, replace cid with data URI for native rendering
-      let resendHtml = htmlContent.replace(/cid:entry-pass-qr/g, qrBase64);
-      extraAttachments.forEach((att) => {
-        resendHtml = resendHtml.replace(
-          new RegExp(`cid:${att.cid}`, "g"),
-          `data:${att.contentType};base64,${att.content.toString("base64")}`
-        );
-      });
+      // For Resend API: Keep "cid:" in HTML and specify contentId / content_id in attachments.
+      // NEVER replace with data:image/... URIs because Gmail and webmail clients strictly block Base64 images!
+      const resendAttachments = [
+        {
+          filename: "entry-pass-qr.png",
+          content: qrBuffer.toString("base64"),
+          contentId: "entry-pass-qr",
+          content_id: "entry-pass-qr",
+          contentType: "image/png",
+        },
+        ...extraAttachments.map((att) => ({
+          filename: att.filename,
+          content: att.base64 || att.content.toString("base64"),
+          contentId: att.cid,
+          content_id: att.cid,
+          contentType: att.contentType,
+        })),
+      ];
 
       const res = await instance.emails.send({
         from: provider.senderEmail,
         to: attendee.email,
         subject: template ? template.subject : `Official Entry Pass: ${event?.name || "Event"} - Graphic Era`,
-        html: resendHtml,
-        attachments: [
-          {
-            filename: "entry-pass-qr.png",
-            content: qrBuffer.toString("base64"),
-          },
-          ...extraAttachments.map((att) => ({
-            filename: att.filename,
-            content: att.content.toString("base64"),
-          })),
-        ],
+        html: htmlContent,
+        attachments: resendAttachments,
       });
 
       if (res.error) {
@@ -312,21 +319,29 @@ const sendQrEmail = async (attendee, event, qrCodeDataUrl, customMessage = "", t
       response = res.data;
     } else {
       // For Nodemailer (AWS SES, SMTP, Google), attach via CID inline attachment
+      const mailAttachments = [
+        {
+          filename: "entry-pass-qr.png",
+          content: qrBuffer,
+          cid: "entry-pass-qr",
+          contentType: "image/png",
+          contentDisposition: "inline",
+        },
+        ...extraAttachments.map((att) => ({
+          filename: att.filename,
+          content: att.content,
+          cid: att.cid,
+          contentType: att.contentType,
+          contentDisposition: "inline",
+        })),
+      ];
+
       response = await instance.sendMail({
         from: provider.senderEmail,
         to: attendee.email,
         subject: template ? template.subject : `Official Entry Pass: ${event?.name || "Event"} - Graphic Era`,
         html: htmlContent,
-        attachments: [
-          {
-            filename: "entry-pass-qr.png",
-            content: qrBuffer,
-            cid: "entry-pass-qr",
-            contentType: "image/png",
-            contentDisposition: "inline",
-          },
-          ...extraAttachments,
-        ],
+        attachments: mailAttachments,
       });
     }
 

@@ -178,6 +178,34 @@ app.get("/verify/:token", async (req, res) => {
   }
 });
 
+// Public direct QR image route (useful for web display and direct rendering)
+app.get("/api/attendees/qr-image/:token", async (req, res) => {
+  try {
+    const prisma = require("./prismaClient");
+    const QRCode = require("qrcode");
+    const token = req.params.token;
+    const attendee = await prisma.attendee.findUnique({
+      where: { token },
+      select: { qrLink: true },
+    });
+    if (!attendee) return res.status(404).send("Attendee not found");
+
+    const qrBuffer = await QRCode.toBuffer(attendee.qrLink, {
+      type: "png",
+      margin: 3,
+      width: 380,
+      errorCorrectionLevel: "M",
+      color: { dark: "#000000", light: "#FFFFFF" },
+    });
+    res.setHeader("Content-Type", "image/png");
+    res.setHeader("Cache-Control", "public, max-age=86400");
+    return res.send(qrBuffer);
+  } catch (err) {
+    console.error("Public QR image serve error:", err);
+    return res.status(500).send("Error generating QR image");
+  }
+});
+
 /* 
    GLOBAL ERROR HANDLER
  */
